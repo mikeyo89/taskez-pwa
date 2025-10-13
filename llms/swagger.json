@@ -1,0 +1,2512 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Taskez API",
+    "description": "FastAPI application for managing projects, services, and tasks.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "paths": {
+    "/swagger": {
+      "get": {
+        "summary": " Swagger",
+        "operationId": "_swagger_swagger_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": " Healthcheck",
+        "operationId": "_healthcheck_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/groups": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Get Groups",
+        "description": "Retrieve active client groups with optional pagination and filtering.\n\nArgs:\n    limit: Maximum number of records to return.\n    offset: Number of records to skip before returning results.\n    group_name: Optional prefix used to filter by group name.\n    group_desc: Optional prefix used to filter by group description.\n\nReturns:\n    JSONResponse: Paginated response containing client group records.",
+        "operationId": "get_groups_clients_groups_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "group_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Name"
+            }
+          },
+          {
+            "name": "group_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientGroup"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Create Group",
+        "description": "Create a new client group.\n\nArgs:\n    group: ClientGroup model describing the group to create.\n\nReturns:\n    JSONResponse: API response with the newly created client group.",
+        "operationId": "create_group_clients_groups_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientGroup"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/groups/{id}": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Get Group",
+        "description": "Fetch a single client group by its identifier.\n\nArgs:\n    id: Identifier of the client group to retrieve.\n\nReturns:\n    JSONResponse: API response containing the client group details if found.",
+        "operationId": "get_group_clients_groups__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientGroup"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Clients"],
+        "summary": "Update Group",
+        "description": "Update an existing client group's fields.\n\nArgs:\n    id: Identifier of the client group to update.\n    group_data: Payload containing the fields to update.\n\nReturns:\n    JSONResponse: API response with the updated client group details.",
+        "operationId": "update_group_clients_groups__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientGroup"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Delete Group",
+        "description": "Delete a client group.\n\nArgs:\n    id: Identifier of the client group to delete.\n\nReturns:\n    JSONResponse: API response confirming deletion or indicating not found.",
+        "operationId": "delete_group_clients_groups__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/contacts": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Get Contacts",
+        "operationId": "get_contacts_clients_contacts_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "client_group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Client Group Id"
+            }
+          },
+          {
+            "name": "contact_first_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contact First Name"
+            }
+          },
+          {
+            "name": "contact_last_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contact Last Name"
+            }
+          },
+          {
+            "name": "contact_email_address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contact Email Address"
+            }
+          },
+          {
+            "name": "contact_details",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contact Details"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContact"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Create Contact",
+        "operationId": "create_contact_clients_contacts_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContact"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/contacts/{id}": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Get Contact",
+        "operationId": "get_contact_clients_contacts__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContact"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Clients"],
+        "summary": "Update Contact",
+        "operationId": "update_contact_clients_contacts__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContact"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Delete Contact",
+        "operationId": "delete_contact_clients_contacts__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/categories": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get Categories",
+        "operationId": "get_categories_services_categories_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "service_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Title"
+            }
+          },
+          {
+            "name": "service_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Services"],
+        "summary": "Create Category",
+        "operationId": "create_category_services_categories_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCategory"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/categories/{id}": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get Category",
+        "operationId": "get_category_services_categories__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Services"],
+        "summary": "Update Category",
+        "operationId": "update_category_services_categories__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCategory"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceCategory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Services"],
+        "summary": "Delete Category",
+        "operationId": "delete_category_services_categories__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/units": {
+      "get": {
+        "tags": ["Services", "Services"],
+        "summary": "Get Units",
+        "description": "Retrieve project service units with optional pagination and filtering.\n\nArgs:\n    limit: Maximum number of records to return.\n    offset: Number of records to skip before returning results.\n    project_title: Optional prefix to filter by related project title.\n    service_title: Optional prefix to filter by related service category title.\n    unit_title: Optional prefix to filter by unit title.\n\nReturns:\n    JSONResponse: Paginated response containing project service unit records.",
+        "operationId": "get_units_services_units_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "project_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Title"
+            }
+          },
+          {
+            "name": "service_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Title"
+            }
+          },
+          {
+            "name": "unit_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unit Title"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceUnit"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Services", "Services"],
+        "summary": "Create Unit",
+        "description": "Create a new project service unit.\n\nArgs:\n    unit: ProjectServiceUnit model describing the unit to create.\n\nReturns:\n    JSONResponse: API response with the newly created unit.",
+        "operationId": "create_unit_services_units_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectServiceUnit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceUnit"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/units/{id}": {
+      "get": {
+        "tags": ["Services", "Services"],
+        "summary": "Get Unit",
+        "description": "Fetch a single project service unit by its identifier.\n\nArgs:\n    id: Identifier of the project service unit to retrieve.\n\nReturns:\n    JSONResponse: API response containing the unit details if found.",
+        "operationId": "get_unit_services_units__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceUnit"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Services", "Services"],
+        "summary": "Update Unit",
+        "description": "Update an existing project service unit's fields.\n\nArgs:\n    id: Identifier of the project service unit to update.\n    unit_data: Payload containing fields to update.\n\nReturns:\n    JSONResponse: API response with the updated unit details.",
+        "operationId": "update_unit_services_units__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectServiceUnit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceUnit"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Services", "Services"],
+        "summary": "Delete Unit",
+        "description": "Delete a project service unit.\n\nArgs:\n    id: Identifier of the project service unit to delete.\n\nReturns:\n    JSONResponse: API response confirming deletion or indicating not found.",
+        "operationId": "delete_unit_services_units__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/extras": {
+      "get": {
+        "tags": ["Services", "Services"],
+        "summary": "Get Extras",
+        "description": "Retrieve project service extras with optional pagination and filtering.\n\nArgs:\n    limit: Maximum number of records to return.\n    offset: Number of records to skip before returning results.\n    extra_title: Optional prefix used to filter by extra title.\n    extra_desc: Optional prefix used to filter by extra description.\n    project_title: Optional prefix used to filter by project title.\n    service_category_title: Optional prefix used to filter by service category title.\n\nReturns:\n    JSONResponse: Paginated response containing project service extra records.",
+        "operationId": "get_extras_services_extras_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "extra_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Extra Title"
+            }
+          },
+          {
+            "name": "extra_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Extra Desc"
+            }
+          },
+          {
+            "name": "project_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Title"
+            }
+          },
+          {
+            "name": "service_category_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Category Title"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Services", "Services"],
+        "summary": "Create Extra",
+        "description": "Create a new project service extra.\n\nArgs:\n    extra: ProjectServiceExtra model describing the extra to create.\n\nReturns:\n    JSONResponse: API response with the newly created project service extra.",
+        "operationId": "create_extra_services_extras_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectServiceExtra"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceExtra"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/extras/{id}": {
+      "get": {
+        "tags": ["Services", "Services"],
+        "summary": "Get Extra",
+        "description": "Fetch a single project service extra by its identifier.\n\nArgs:\n    id: Identifier of the project service extra to retrieve.\n\nReturns:\n    JSONResponse: API response containing the project service extra details if found.",
+        "operationId": "get_extra_services_extras__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceExtra"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Services", "Services"],
+        "summary": "Update Extra",
+        "description": "Update an existing project service extra's fields.\n\nArgs:\n    id: Identifier of the project service extra to update.\n    extra_data: Payload containing the fields to update.\n\nReturns:\n    JSONResponse: API response with the updated project service extra details.",
+        "operationId": "update_extra_services_extras__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectServiceExtra"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceExtra"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Services", "Services"],
+        "summary": "Delete Extra",
+        "description": "Delete a project service extra.\n\nArgs:\n    id: Identifier of the project service extra to delete.\n\nReturns:\n    JSONResponse: API response confirming deletion or indicating not found.",
+        "operationId": "delete_extra_services_extras__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/services": {
+      "get": {
+        "tags": ["Projects", "Projects"],
+        "summary": "Get Project Services",
+        "description": "Retrieve active project services with optional pagination, filtering, and search.\n\nArgs:\n    limit: Maximum number of records to return.\n    offset: Number of records to skip before returning results.\n    project_id: Optional filter by project identifier.\n    service_category_id: Optional filter by service category identifier.\n    project_title: Optional prefix used to filter by project title.\n    service_title: Optional prefix used to filter by service category title.\n\nReturns:\n    JSONResponse: Paginated response containing project service records.",
+        "operationId": "get_project_services_projects_services_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "service_category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Category Id"
+            }
+          },
+          {
+            "name": "project_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Title"
+            }
+          },
+          {
+            "name": "service_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Title"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectService"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Projects", "Projects"],
+        "summary": "Create Project Service",
+        "description": "Create a new project service.\n\nArgs:\n    service: ProjectService model describing the service to create.\n\nReturns:\n    JSONResponse: API response with the newly created project service.",
+        "operationId": "create_project_service_projects_services_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectService"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectService"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/services/{id}": {
+      "get": {
+        "tags": ["Projects", "Projects"],
+        "summary": "Get Project Service",
+        "description": "Fetch a single project service by its identifier.\n\nArgs:\n    id: Identifier of the project service to retrieve.\n\nReturns:\n    JSONResponse: API response containing the project service details if found.",
+        "operationId": "get_project_service_projects_services__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectService"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Projects", "Projects"],
+        "summary": "Update Project Service",
+        "description": "Update an existing project service's fields.\n\nArgs:\n    id: Identifier of the project service to update.\n    service_data: Payload containing the fields to update.\n\nReturns:\n    JSONResponse: API response with the updated project service details.",
+        "operationId": "update_project_service_projects_services__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectService"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectService"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Projects", "Projects"],
+        "summary": "Delete Project Service",
+        "description": "Delete a project service.\n\nArgs:\n    id: Identifier of the project service to delete.\n\nReturns:\n    JSONResponse: API response confirming deletion or indicating not found.",
+        "operationId": "delete_project_service_projects_services__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "Get Projects",
+        "operationId": "get_projects_projects_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "project_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Title"
+            }
+          },
+          {
+            "name": "project_desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Desc"
+            }
+          },
+          {
+            "name": "project_contacts_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Contacts Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create Project",
+        "operationId": "create_project_projects_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Project"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "Get Project",
+        "operationId": "get_project_projects__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Projects"],
+        "summary": "Update Project",
+        "operationId": "update_project_projects__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Project"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Projects"],
+        "summary": "Delete Project",
+        "operationId": "delete_project_projects__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkBaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClientContact": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "client_group_id": {
+            "type": "integer",
+            "title": "Client Group Id"
+          },
+          "contact_first_name": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Contact First Name"
+          },
+          "contact_last_name": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Contact Last Name"
+          },
+          "contact_email_address": {
+            "type": "string",
+            "maxLength": 254,
+            "title": "Contact Email Address"
+          },
+          "contact_details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "client_group_id",
+          "contact_first_name",
+          "contact_last_name",
+          "contact_email_address"
+        ],
+        "title": "ClientContact"
+      },
+      "ClientGroup": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "group_name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Group Name"
+          },
+          "group_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Desc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "group_name"
+        ],
+        "title": "ClientGroup"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "OkBaseResponse": {
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/_Metadata"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": ["metadata", "details"],
+        "title": "OkBaseResponse",
+        "description": "#### Base model structure for the 200 Responses.\nIn your project, create your custom 200 API response model like so:\n```\nfrom api.api_models import OkBaseResponse\n\nclass MyCustomDetailsModel(BaseModel):\n    some_field: str\n    another_field: str\n    yet_another_field: str\n\nclass MyCustomOkResponse(OkBaseResponse):\n    details: MyCustomDetailsModel"
+      },
+      "OkOutcome": {
+        "properties": {
+          "status": {
+            "type": "integer",
+            "title": "Status",
+            "default": 200
+          },
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "OK"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Success!"
+          },
+          "developerMessage": {
+            "type": "string",
+            "title": "Developermessage"
+          },
+          "developerDetails": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Developerdetails"
+          }
+        },
+        "type": "object",
+        "required": ["developerMessage", "developerDetails"],
+        "title": "OkOutcome"
+      },
+      "Project": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "project_title": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Project Title"
+          },
+          "project_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Desc",
+            "default": ""
+          },
+          "project_contacts_id": {
+            "type": "integer",
+            "title": "Project Contacts Id"
+          },
+          "budget_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "project_title",
+          "project_contacts_id"
+        ],
+        "title": "Project"
+      },
+      "ProjectService": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "service_category_id": {
+            "type": "integer",
+            "title": "Service Category Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "project_id",
+          "service_category_id"
+        ],
+        "title": "ProjectService"
+      },
+      "ProjectServiceExtra": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "project_service_id": {
+            "type": "integer",
+            "title": "Project Service Id"
+          },
+          "extra_title": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Extra Title"
+          },
+          "extra_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extra Desc"
+          },
+          "budget_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Type",
+            "default": "dollar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "project_service_id",
+          "extra_title"
+        ],
+        "title": "ProjectServiceExtra"
+      },
+      "ProjectServiceUnit": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "project_service_id": {
+            "type": "integer",
+            "title": "Project Service Id"
+          },
+          "unit_title": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Unit Title"
+          },
+          "unit_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Desc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "project_service_id",
+          "unit_title"
+        ],
+        "title": "ProjectServiceUnit"
+      },
+      "ServiceCategory": {
+        "properties": {
+          "company_id": {
+            "type": "integer",
+            "title": "Company Id"
+          },
+          "created_owner_id": {
+            "type": "integer",
+            "title": "Created Owner Id"
+          },
+          "created_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ts"
+          },
+          "updated_owner_id": {
+            "type": "integer",
+            "title": "Updated Owner Id"
+          },
+          "updated_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated Ts"
+          },
+          "active_ind": {
+            "type": "boolean",
+            "title": "Active Ind",
+            "default": true
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "service_title": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Service Title"
+          },
+          "service_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Desc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "created_owner_id",
+          "updated_owner_id",
+          "service_title"
+        ],
+        "title": "ServiceCategory"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      },
+      "_Metadata": {
+        "properties": {
+          "serviceReferenceId": {
+            "type": "string",
+            "title": "Servicereferenceid"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/OkOutcome"
+          }
+        },
+        "type": "object",
+        "required": ["serviceReferenceId", "outcome"],
+        "title": "_Metadata"
+      }
+    }
+  }
+}
