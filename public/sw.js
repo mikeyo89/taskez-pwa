@@ -1,4 +1,4 @@
-const url = 'localhost:3000';
+const APP_URL = 'http://localhost:3000';
 
 self.addEventListener('push', function (event) {
   if (event.data) {
@@ -20,5 +20,5 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
   console.log('Notification click received.');
   event.notification.close();
-  event.waitUntil(clients.openWindow('localhost:3000'));
+  event.waitUntil(clients.openWindow(APP_URL));
 });

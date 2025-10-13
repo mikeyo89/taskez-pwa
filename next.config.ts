@@ -1,4 +1,7 @@
-const withPWA = require('@ducanh2912/next-pwa').default({
+import type { NextConfig } from 'next';
+import withPWAInit from '@ducanh2912/next-pwa';
+
+const withPWA = withPWAInit({
   dest: 'public',
   register: true,
   // Sensible mobile-first caching. Tune as you scale.
@@ -32,13 +35,10 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   }
 });
 
-module.exports = withPWA({
+const config: NextConfig = {
   output: 'standalone',
   experimental: { typedRoutes: true },
-  images: { unoptimized: true } // lean runtime; offload heavy transforms later
-});
-
-module.exports = {
+  images: { unoptimized: true }, // lean runtime; offload heavy transforms later
   async headers() {
     return [
       {
@@ -79,37 +79,4 @@ module.exports = {
   }
 };
 
-// export default withPWA({
-//   ...config,
-//   dest: 'public',
-//   register: true,
-//   // Sensible mobile-first caching. Tune as you scale.
-//   workboxOptions: {
-//     runtimeCaching: [
-//       {
-//         urlPattern: ({ request }: { request: Request }) =>
-//           ['style', 'script', 'worker'].includes(request.destination),
-//         handler: 'StaleWhileRevalidate',
-//         options: { cacheName: 'app-shell' }
-//       },
-//       {
-//         urlPattern: ({ request }: { request: Request }) =>
-//           ['image', 'font'].includes(request.destination),
-//         handler: 'CacheFirst',
-//         options: {
-//           cacheName: 'static-assets',
-//           expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 }
-//         }
-//       },
-//       {
-//         urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/'),
-//         handler: 'NetworkFirst',
-//         options: {
-//           cacheName: 'api-cache',
-//           networkTimeoutSeconds: 3,
-//           expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 }
-//         }
-//       }
-//     ]
-//   }
-// });
+export default withPWA(config);

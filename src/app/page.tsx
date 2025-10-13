@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeUser, unsubscribeUser, sendNotification } from './actions';
-import Providers from './providers';
 import HomeScreen from './ui/home-screen';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -18,7 +17,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-function PushNotificationManager() {
+export function PushNotificationManager() {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [message, setMessage] = useState('');
@@ -92,12 +91,13 @@ function PushNotificationManager() {
   );
 }
 
-function InstallPrompt() {
+export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+    const hasMsStream = 'MSStream' in window;
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !hasMsStream);
 
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
@@ -117,7 +117,7 @@ function InstallPrompt() {
             {' '}
             ⎋{' '}
           </span>
-          and then "Add to Home Screen"
+          and then &ldquo;Add to Home Screen&rdquo;
           <span role='img' aria-label='plus icon'>
             {' '}
             ➕{' '}
@@ -130,11 +130,5 @@ function InstallPrompt() {
 }
 
 export default function Page() {
-  return (
-    <Providers>
-      <PushNotificationManager />
-      <InstallPrompt />
-      <HomeScreen />
-    </Providers>
-  );
+  return <HomeScreen />;
 }
