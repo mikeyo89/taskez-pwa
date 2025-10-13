@@ -72,7 +72,7 @@ export function AddClientDialog() {
         <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle>Add Client</DialogTitle>
-            <DialogDescription>Client's information appears in Invoices.</DialogDescription>
+            <DialogDescription>Client&apos;s information appears in Invoices.</DialogDescription>
           </DialogHeader>
           <Separator className='my-3' />
           <div className='grid gap-4'>
@@ -195,89 +195,6 @@ export function UpdateClientDialog({
             <Button type='submit' disabled={pending}>
               {pending && <Spinner />}
               {pending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ManageMembersDialog() {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    // Form field extraction.
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const name = String(form.get('name') ?? '').trim();
-    const description = String(form.get('description') ?? '').trim();
-
-    // Form validation.
-    if (!name) {
-      toast.error('Name field is required.');
-      return;
-    }
-
-    // Form processing.
-    setPending(true);
-    try {
-      await createClient({ name, description });
-      toast.success('Client added');
-      e.currentTarget?.reset();
-      setOpen(false);
-    } catch (error) {
-      console.error(error);
-      toast.error('Unable to add client. Try again.');
-    } finally {
-      setPending(false);
-    }
-  }
-  return (
-    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
-      <DialogTrigger asChild>
-        <Button
-          onClick={() => setOpen(true)}
-          size='icon-lg'
-          className='rounded-full shadow-lg'
-          style={{
-            boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
-          }}
-          aria-label='Create new client'
-        >
-          <Plus className='h-5 w-5' aria-hidden />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className='sm:max-w-[425px]'>
-        <form onSubmit={onSubmit}>
-          <DialogHeader>
-            <DialogTitle>Add Client</DialogTitle>
-            <DialogDescription>Client's information appears in Invoices.</DialogDescription>
-          </DialogHeader>
-          <Separator className='my-3' />
-          <div className='grid gap-4'>
-            <div className='grid gap-3'>
-              <Label htmlFor='name-1' className='font-semibold'>
-                Name
-              </Label>
-              <Input id='name-1' name='name' placeholder='Jeff Harding Realty Group LLC' required />
-            </div>
-            <div className='grid gap-3'>
-              <Label htmlFor='description-1' className='font-semibold'>
-                Description
-              </Label>
-              <Input id='description-1' name='description' placeholder='Optional' />
-            </div>
-            <div />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant='outline'>Cancel</Button>
-            </DialogClose>
-            <Button type='submit' disabled={pending}>
-              {pending && <Spinner />}
-              {pending ? 'Adding...' : 'Add'}
             </Button>
           </DialogFooter>
         </form>

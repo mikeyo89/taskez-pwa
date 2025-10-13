@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Taskez PWA',
+  title: 'Taskez PM',
   themeColor: '#0ea5e9',
   manifest: '/manifest.json',
   viewport: 'width=device-width, initial-scale=1, viewport-fit=cover'

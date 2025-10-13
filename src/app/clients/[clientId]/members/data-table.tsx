@@ -1,4 +1,4 @@
-'use Service';
+'use client';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,12 +17,14 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Tooltip } from '@/components/ui/tooltip';
-import { deleteService } from '@/lib/actions/services';
-import type { Service } from '@/lib/models';
+import { deleteMember } from '@/lib/actions/clients';
+import type { Member } from '@/lib/models';
 import { cn } from '@/lib/utils';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ColumnDef,
   SortingState,
+  Updater,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -33,7 +35,9 @@ import {
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Loader2, Pencil, Trash2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { UpdateServiceDialog } from './form';
+
+import { useMemberFiltersStore } from '@/stores/member-filters';
+import { UpdateMemberDialog } from './forms';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 declare module '@tanstack/react-table' {
@@ -43,39 +47,40 @@ declare module '@tanstack/react-table' {
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
-type ServicesTableProps = {
-  data: Service[];
+type MembersTableProps = {
+  data: Member[];
   loading?: boolean;
 };
 
-export function ServicesTable({ data, loading = false }: ServicesTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
-  const [globalFilter, setGlobalFilter] = useState('');
+const PAGE_SIZE = 5;
 
-  const columns = useMemo<ColumnDef<Service>[]>(() => {
+export function MembersTable({ data, loading = false }: MembersTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
+  const search = useMemberFiltersStore((state) => state.search);
+  const setSearch = useMemberFiltersStore((state) => state.setSearch);
+  const pageIndex = useMemberFiltersStore((state) => state.pageIndex);
+  const setPageIndex = useMemberFiltersStore((state) => state.setPageIndex);
+
+  const columns = useMemo<ColumnDef<Member>[]>(() => {
     return [
       {
-        accessorKey: 'name',
+        id: 'full_name',
+        accessorFn: (row) => `${row.first_name} ${row.last_name}`,
         header: () => (
-          <span className='text-xs font-semibold uppercase text-muted-foreground'>Service</span>
+          <span className='text-xs font-semibold uppercase text-muted-foreground'>Member</span>
         ),
         cell: ({ row }) => {
-          const service = row.original;
+          const member = row.original;
+          const fullName = `${member.first_name} ${member.last_name}`;
           return (
             <div className='flex flex-col gap-1'>
-              <Tooltip content={service.name} side='top'>
-                <span
-                  className='text-sm font-medium text-foreground block max-w-[13rem] truncate'
-                  aria-label={service.name}
-                >
-                  {service.name}
+              <Tooltip content={fullName} side='top'>
+                <span className='block max-w-[12rem] truncate text-sm font-medium text-foreground'>
+                  {fullName}
                 </span>
               </Tooltip>
-              {service.description && (
-                <span className='text-xs text-muted-foreground line-clamp-2'>
-                  {service.description}
-                </span>
-              )}
+              <span className='text-xs text-muted-foreground'>{member.email}</span>
+              <span className='text-xs text-muted-foreground'>{member.phone ?? '-'}</span>
             </div>
           );
         },
@@ -108,21 +113,34 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
     ];
   }, []);
 
+  const handlePaginationChange = (updater: Updater<{ pageIndex: number; pageSize: number }>) => {
+    const next =
+      typeof updater === 'function' ? updater({ pageIndex, pageSize: PAGE_SIZE }) : updater;
+    setPageIndex(next.pageIndex);
+  };
+
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
-      globalFilter
+      globalFilter: search,
+      pagination: {
+        pageIndex,
+        pageSize: PAGE_SIZE
+      }
     },
     onSortingChange: setSorting,
+    onPaginationChange: handlePaginationChange,
     globalFilterFn: (row, columnId, filterValue) => {
       if (!filterValue) return true;
       const value = String(filterValue).toLowerCase();
-      const Service = row.original;
+      const member = row.original;
+      const fullName = `${member.first_name} ${member.last_name}`.toLowerCase();
       return (
-        Service.name.toLowerCase().includes(value) ||
-        (Service.description ?? '').toLowerCase().includes(value)
+        fullName.includes(value) ||
+        member.email.toLowerCase().includes(value) ||
+        (member.phone ?? '').toLowerCase().includes(value)
       );
     },
     getCoreRowModel: getCoreRowModel(),
@@ -130,7 +148,7 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
-      pagination: { pageSize: 5 }
+      pagination: { pageSize: PAGE_SIZE }
     }
   });
 
@@ -145,13 +163,13 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
     >
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <Input
-          value={globalFilter}
+          value={search}
           onChange={(event) => {
             const value = event.target.value;
-            setGlobalFilter(value);
+            setSearch(value);
             table.setGlobalFilter(value);
           }}
-          placeholder='Search Services...'
+          placeholder='Search members…'
           className='h-9'
         />
         <div className='flex items-center justify-end gap-2 text-xs text-muted-foreground sm:text-sm'>
@@ -205,13 +223,13 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
               <TableCell colSpan={columns.length} className='h-24'>
                 <div className='flex items-center justify-center gap-3 text-sm text-muted-foreground'>
                   <Loader2 className='h-4 w-4 animate-spin' />
-                  Loading Services…
+                  Loading members…
                 </div>
               </TableCell>
             </TableRow>
           ) : rows.length ? (
             rows.map((row) => (
-              <ServiceRowActions key={row.id} Service={row.original}>
+              <MemberRowActions key={row.id} member={row.original}>
                 <TableRow
                   data-state={row.getIsSelected() ? 'selected' : undefined}
                   className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
@@ -225,7 +243,7 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
                     </TableCell>
                   ))}
                 </TableRow>
-              </ServiceRowActions>
+              </MemberRowActions>
             ))
           ) : (
             <TableRow>
@@ -233,9 +251,9 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
                 colSpan={columns.length}
                 className='h-24 text-center text-sm text-muted-foreground'
               >
-                {globalFilter
-                  ? 'No Services match your search.'
-                  : 'Add your first Service to get started.'}
+                {search
+                  ? 'No members match your search.'
+                  : 'Add people to this client to collaborate faster.'}
               </TableCell>
             </TableRow>
           )}
@@ -253,20 +271,42 @@ function formatDate(input: string) {
   });
 }
 
-function ServiceRowActions({
-  Service,
-  children
-}: {
-  Service: Service;
-  children: React.ReactElement;
-}) {
+function MemberRowActions({ member, children }: { member: Member; children: React.ReactElement }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteMember(member.id),
+    onSuccess: async () => {
+      toast.success('Member removed');
+      await queryClient.invalidateQueries({ queryKey: ['clients', member.client_id, 'members'] });
+    },
+    onError: (error: unknown) => {
+      console.error(error);
+      toast.error('Unable to delete member. Try again.');
+    }
+  });
 
-  let child;
+  const handleDelete = async () => {
+    setMenuOpen(false);
+    const confirmed =
+      typeof window === 'undefined'
+        ? true
+        : window.confirm(`Remove ${member.first_name} ${member.last_name}?`);
+    if (!confirmed) return;
+    await deleteMutation.mutateAsync();
+  };
+
+  const handleEdit = () => {
+    setMenuOpen(false);
+    setUpdateOpen(true);
+  };
+
+  let triggerChild: React.ReactElement = children;
   if (React.isValidElement(children)) {
     const el = children as React.ReactElement<Record<string, unknown>>;
-    child = React.cloneElement(el, {
+    const existingOnKeyDown = (el.props as unknown as { onKeyDown?: unknown })?.onKeyDown;
+    triggerChild = React.cloneElement(el, {
       role: 'button',
       tabIndex: 0,
       onKeyDown: (event: React.KeyboardEvent) => {
@@ -274,49 +314,25 @@ function ServiceRowActions({
           event.preventDefault();
           setMenuOpen(true);
         }
-        if (el.props.onKeyDown) {
-          el.props.onKeyDown(event);
+        if (typeof existingOnKeyDown === 'function') {
+          existingOnKeyDown(event);
         }
-      },
-      className: cn(
-        el.props.className,
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-      )
+      }
     });
-  } else {
-    child = children;
   }
-
-  const openUpdateDialog = () => {
-    setMenuOpen(false);
-    setUpdateOpen(true);
-  };
-
-  const handleDelete = async () => {
-    setMenuOpen(false);
-    const confirmed =
-      typeof window === 'undefined' ? true : window.confirm('Delete this Service permanently?');
-    if (!confirmed) return;
-    try {
-      await deleteService(Service.id);
-      toast.success('Service deleted');
-    } catch (error) {
-      console.error(error);
-      toast.error('Unable to delete Service. Try again.');
-    }
-  };
 
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger asChild>{child}</DropdownMenuTrigger>
-        <DropdownMenuContent align='end' className='w-48'>
-          <DropdownMenuItem onClick={openUpdateDialog} className='gap-2'>
+        <DropdownMenuTrigger asChild>{triggerChild}</DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='w-44'>
+          <DropdownMenuItem onClick={handleEdit} className='gap-2'>
             <Pencil className='h-4 w-4' />
-            Update
+            Modify
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={handleDelete}
+            disabled={deleteMutation.isPending}
             className='gap-2 text-destructive focus:text-destructive'
           >
             <Trash2 className='h-4 w-4' />
@@ -324,12 +340,7 @@ function ServiceRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <UpdateServiceDialog
-        key={`${Service.id}-${Service.updated_at}`}
-        Service={Service}
-        open={updateOpen}
-        onOpenChange={setUpdateOpen}
-      />
+      <UpdateMemberDialog member={member} open={updateOpen} onOpenChange={setUpdateOpen} />
     </>
   );
 }

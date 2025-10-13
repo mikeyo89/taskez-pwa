@@ -39,6 +39,7 @@ import {
   Trash2,
   Users
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { UpdateClientDialog } from './form';
@@ -264,6 +265,7 @@ function formatDate(input: string) {
 function ClientRowActions({ client, children }: { client: Client; children: React.ReactElement }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const router = useRouter();
 
   let child;
   if (React.isValidElement(children)) {
@@ -313,7 +315,7 @@ function ClientRowActions({ client, children }: { client: Client; children: Reac
 
   const handleMembers = () => {
     setMenuOpen(false);
-    toast.info('Members view coming soon.');
+    router.push(`/clients/${client.id}/members`);
   };
 
   return (

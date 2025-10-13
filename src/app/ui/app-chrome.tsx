@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
+import { Toaster } from '@/components/ui/sonner';
 import { ACCENT_PRESETS } from '@/lib/appearance';
 import { cn } from '@/lib/utils';
 import { useAppearanceStore } from '@/stores/appearance';
@@ -28,7 +29,6 @@ import {
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
 import MobileAppBar from './mobile-app-bar';
-import { Toaster } from '@/components/ui/sonner';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -91,7 +91,7 @@ function AppHeader() {
           <div className='flex h-9 w-9 items-center justify-center rounded-full border border-border/70'>
             <BarChart2 className='h-4 w-4 text-primary' aria-hidden />
           </div>
-          <h1 className='text-xl font-semibold tracking-tight'>Taskez</h1>
+          <h1 className='text-xl font-semibold tracking-tight'>Taskez PM</h1>
         </div>
         <HeaderActions />
       </div>

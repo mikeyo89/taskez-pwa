@@ -30,9 +30,9 @@ export default function MobileAppBar() {
       }}
     >
       <div
-        className='mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4'
+        className='mx-auto flex w-full max-w-5xl items-center justify-between px-3 py-3'
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) * 0.75)'
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.75rem)'
         }}
       >
         {NAV_ITEMS.map(({ href, Icon, label }) => {
@@ -43,10 +43,10 @@ export default function MobileAppBar() {
           return (
             <Link
               key={href}
-              href={href}
+              href={href as unknown as object}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-[0.7rem] font-medium transition-all duration-200',
+                'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl px-5 py-3 text-[0.6rem] font-medium transition-all duration-200',
                 active ? 'text-primary' : 'text-muted-foreground'
               )}
               style={
@@ -60,7 +60,7 @@ export default function MobileAppBar() {
                     }
               }
             >
-              <Icon className='h-5 w-5' aria-hidden />
+              <Icon className='h-[1rem] w-[1rem]' aria-hidden />
               <span className='leading-none'>{label}</span>
             </Link>
           );

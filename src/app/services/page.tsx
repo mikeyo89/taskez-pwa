@@ -28,7 +28,7 @@ export default function ServicesPage() {
         </div>
         <div>
           <h1 className='text-lg font-semibold tracking-tight'>Services</h1>
-          <p className='text-sm text-muted-foreground'>What makes the clients come back?</p>
+          <p className='text-sm text-muted-foreground'>What makes your clients come back?</p>
         </div>
       </section>
 
