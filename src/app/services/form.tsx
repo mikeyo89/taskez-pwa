@@ -1,4 +1,4 @@
-'use client';
+'use Service';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,36 +19,29 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { createClient, updateClient } from '@/lib/actions/clients';
-import type { Client } from '@/lib/models';
+import { createService, updateService } from '@/lib/actions/services';
+import type { Service } from '@/lib/models';
 
-export function AddClientDialog() {
+export function AddServiceDialog() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    // Form field extraction.
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get('name') ?? '').trim();
     const description = String(form.get('description') ?? '').trim();
 
-    // Form validation.
-    if (!name) {
-      toast.error('Name field is required.');
-      return;
-    }
-
-    // Form processing.
+    if (!name) return; // add your own toast/validation
     setPending(true);
     try {
-      await createClient({ name, description });
-      toast.success('Client added');
+      await createService({ name, description });
+      toast.success('Service added');
       e.currentTarget?.reset();
       setOpen(false);
     } catch (error) {
       console.error(error);
-      toast.error('Unable to add client. Try again.');
+      toast.error('Unable to add Service. Try again.');
     } finally {
       setPending(false);
     }
@@ -63,7 +56,7 @@ export function AddClientDialog() {
           style={{
             boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
           }}
-          aria-label='Create new client'
+          aria-label='Create new Service'
         >
           <Plus className='h-5 w-5' aria-hidden />
         </Button>
@@ -71,8 +64,8 @@ export function AddClientDialog() {
       <DialogContent className='sm:max-w-[425px]'>
         <form onSubmit={onSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Client</DialogTitle>
-            <DialogDescription>Client's information appears in Invoices.</DialogDescription>
+            <DialogTitle>Add Service</DialogTitle>
+            <DialogDescription>The project work you do for clients.</DialogDescription>
           </DialogHeader>
           <Separator className='my-3' />
           <div className='grid gap-4'>
@@ -80,7 +73,7 @@ export function AddClientDialog() {
               <Label htmlFor='name-1' className='font-semibold'>
                 Name
               </Label>
-              <Input id='name-1' name='name' placeholder='Jeff Harding Realty Group LLC' required />
+              <Input id='name-1' name='name' placeholder='Framing | Siding | Roofing' required />
             </div>
             <div className='grid gap-3'>
               <Label htmlFor='description-1' className='font-semibold'>
@@ -105,39 +98,31 @@ export function AddClientDialog() {
   );
 }
 
-export function UpdateClientDialog({
-  client,
+export function UpdateServiceDialog({
+  Service,
   open,
   onOpenChange
 }: {
-  client: Client;
+  Service: Service;
   open: boolean;
   onOpenChange: (value: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    // Form field extraction.
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get('name') ?? '').trim();
     const description = String(form.get('description') ?? '').trim();
-
-    // Form validation.
-    if (!name) {
-      toast.error('Name field is required.');
-      return;
-    }
-
-    // Form processing.
+    if (!name) return;
     setPending(true);
     try {
-      await updateClient(client.id, { name, description });
-      toast.success('Client updated');
+      await updateService(Service.id, { name, description });
+      toast.success('Service updated');
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      toast.error('Unable to update client. Try again.');
+      toast.error('Unable to update Service. Try again.');
     } finally {
       setPending(false);
     }
@@ -152,10 +137,10 @@ export function UpdateClientDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='sm:max-w-[425px]'>
-        <form key={client.id} onSubmit={onSubmit}>
+        <form key={Service.id} onSubmit={onSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Client</DialogTitle>
-            <DialogDescription>Update the core details of this client.</DialogDescription>
+            <DialogTitle>Edit Service</DialogTitle>
+            <DialogDescription>Update the core details of this Service.</DialogDescription>
           </DialogHeader>
 
           <Separator className='my-3' />
@@ -168,8 +153,8 @@ export function UpdateClientDialog({
               <Input
                 id='name-update'
                 name='name'
-                defaultValue={client.name}
-                placeholder='Client name'
+                defaultValue={Service.name}
+                placeholder='Service name'
                 required
               />
             </div>
@@ -180,7 +165,7 @@ export function UpdateClientDialog({
               <Input
                 id='description-update'
                 name='description'
-                defaultValue={client.description ?? ''}
+                defaultValue={Service.description ?? ''}
                 placeholder='Optional'
               />
             </div>
@@ -195,89 +180,6 @@ export function UpdateClientDialog({
             <Button type='submit' disabled={pending}>
               {pending && <Spinner />}
               {pending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ManageMembersDialog() {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    // Form field extraction.
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const name = String(form.get('name') ?? '').trim();
-    const description = String(form.get('description') ?? '').trim();
-
-    // Form validation.
-    if (!name) {
-      toast.error('Name field is required.');
-      return;
-    }
-
-    // Form processing.
-    setPending(true);
-    try {
-      await createClient({ name, description });
-      toast.success('Client added');
-      e.currentTarget?.reset();
-      setOpen(false);
-    } catch (error) {
-      console.error(error);
-      toast.error('Unable to add client. Try again.');
-    } finally {
-      setPending(false);
-    }
-  }
-  return (
-    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
-      <DialogTrigger asChild>
-        <Button
-          onClick={() => setOpen(true)}
-          size='icon-lg'
-          className='rounded-full shadow-lg'
-          style={{
-            boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
-          }}
-          aria-label='Create new client'
-        >
-          <Plus className='h-5 w-5' aria-hidden />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className='sm:max-w-[425px]'>
-        <form onSubmit={onSubmit}>
-          <DialogHeader>
-            <DialogTitle>Add Client</DialogTitle>
-            <DialogDescription>Client's information appears in Invoices.</DialogDescription>
-          </DialogHeader>
-          <Separator className='my-3' />
-          <div className='grid gap-4'>
-            <div className='grid gap-3'>
-              <Label htmlFor='name-1' className='font-semibold'>
-                Name
-              </Label>
-              <Input id='name-1' name='name' placeholder='Jeff Harding Realty Group LLC' required />
-            </div>
-            <div className='grid gap-3'>
-              <Label htmlFor='description-1' className='font-semibold'>
-                Description
-              </Label>
-              <Input id='description-1' name='description' placeholder='Optional' />
-            </div>
-            <div />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant='outline'>Cancel</Button>
-            </DialogClose>
-            <Button type='submit' disabled={pending}>
-              {pending && <Spinner />}
-              {pending ? 'Adding...' : 'Add'}
             </Button>
           </DialogFooter>
         </form>

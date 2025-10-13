@@ -2,10 +2,13 @@
 
 import { Users } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Card } from '@/components/ui/card';
+
+import { useLiveClients } from '@/lib/hooks/useLiveClients';
 import { AddClientDialog } from './form';
+import { ClientsTable } from './data-table';
 
 export default function ClientsPage() {
+  const { data, loading } = useLiveClients();
   return (
     <div className='flex flex-col gap-6'>
       <section
@@ -35,14 +38,7 @@ export default function ClientsPage() {
         transition={{ duration: 0.25 }}
         className='grid gap-3'
       >
-        <Card
-          className='border border-dashed px-6'
-          style={{ borderColor: 'color-mix(in srgb, var(--border) 70%, transparent)' }}
-        >
-          <div className='text-sm text-muted-foreground'>
-            Client insights and activity will surface here once you connect your workspace.
-          </div>
-        </Card>
+        <ClientsTable data={data} loading={loading} />
         <div className='mt-auto flex justify-end'>
           <AddClientDialog />
         </div>

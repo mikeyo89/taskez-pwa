@@ -1,6 +1,7 @@
 'use server';
 
 import webpush from 'web-push';
+import type { PushSubscription as WebPushSubscription } from 'web-push';
 
 webpush.setVapidDetails(
   'mailto: <me@michaelbonilla.dev>',
@@ -8,9 +9,11 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-let subscription: PushSubscription | null = null;
+type StoredSubscription = WebPushSubscription;
 
-export async function subscribeUser(sub: PushSubscription) {
+let subscription: StoredSubscription | null = null;
+
+export async function subscribeUser(sub: StoredSubscription) {
   subscription = sub;
   // In a production environment, you would want to store the subscription in a database
   // For example: await db.subscriptions.create({ data: sub })

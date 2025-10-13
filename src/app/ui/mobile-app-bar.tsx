@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+import { BarChart2, Folder, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2, Folder, Settings, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type NavigationItem = {
   id: 'clients' | 'services' | 'projects' | 'dashboard';

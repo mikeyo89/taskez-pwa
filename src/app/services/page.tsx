@@ -2,9 +2,13 @@
 
 import { Settings } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Card } from '@/components/ui/card';
+
+import { useLiveServices } from '@/lib/hooks/useLiveServices';
+import { ServicesTable } from './data-table';
+import { AddServiceDialog } from './form';
 
 export default function ServicesPage() {
+  const { data, loading } = useLiveServices();
   return (
     <div className='flex flex-col gap-6'>
       <section
@@ -24,9 +28,7 @@ export default function ServicesPage() {
         </div>
         <div>
           <h1 className='text-lg font-semibold tracking-tight'>Services</h1>
-          <p className='text-sm text-muted-foreground'>
-            Define offerings and automation workflows.
-          </p>
+          <p className='text-sm text-muted-foreground'>What makes the clients come back?</p>
         </div>
       </section>
 
@@ -36,14 +38,10 @@ export default function ServicesPage() {
         transition={{ duration: 0.25 }}
         className='grid gap-3'
       >
-        <Card
-          className='border border-dashed px-6'
-          style={{ borderColor: 'color-mix(in srgb, var(--border) 70%, transparent)' }}
-        >
-          <div className='text-sm text-muted-foreground'>
-            Create reusable playbooks and templates for your team&apos;s client services.
-          </div>
-        </Card>
+        <ServicesTable data={data} loading={loading} />
+        <div className='mt-auto flex justify-end'>
+          <AddServiceDialog />
+        </div>
       </motion.div>
     </div>
   );

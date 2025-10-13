@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -11,12 +9,13 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
+import { ACCENT_PRESETS } from '@/lib/appearance';
+import { cn } from '@/lib/utils';
+import { useAppearanceStore } from '@/stores/appearance';
 import {
   BarChart2,
   Bell,
-  CreditCard,
   Download,
-  LifeBuoy,
   LogOut,
   Moon,
   Palette,
@@ -26,10 +25,10 @@ import {
   WifiOff,
   X
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { ACCENT_PRESETS } from '@/lib/appearance';
-import { useAppearanceStore } from '@/stores/appearance';
+import { useTheme } from 'next-themes';
+import { useEffect, useMemo, useState } from 'react';
 import MobileAppBar from './mobile-app-bar';
+import { Toaster } from '@/components/ui/sonner';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -38,9 +37,16 @@ type BeforeInstallPromptEvent = Event & {
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean };
 
+declare global {
+  interface WindowEventMap {
+    beforeinstallprompt: BeforeInstallPromptEvent;
+  }
+}
+
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className='relative flex min-h-[100svh] flex-col bg-background text-foreground'>
+      <Toaster position='top-center' richColors closeButton />
       <InstallBanner />
       <AppHeader />
       <main
@@ -150,7 +156,8 @@ function InstallBanner() {
           <div className='flex-1 leading-snug text-xs text-muted-foreground'>
             {deferred ? (
               <span>
-                Install Taskez for the best offline experience. Your workspace stays just a tap away.
+                Install Taskez for the best offline experience. Your workspace stays just a tap
+                away.
               </span>
             ) : (
               <span>
@@ -208,7 +215,15 @@ function ThemeToggleButton() {
       aria-label='Toggle light or dark mode'
       disabled={!mounted}
     >
-      {isDark ? <Sun className='h-5 w-5' aria-hidden /> : <Moon className='h-5 w-5' aria-hidden />}
+      {/* Avoid rendering theme-dependent icons until the client has mounted to prevent
+          server/client hydration mismatches. Render a size-matched placeholder first. */}
+      {!mounted ? (
+        <span className='inline-block h-5 w-5' aria-hidden />
+      ) : isDark ? (
+        <Sun className='h-5 w-5' aria-hidden />
+      ) : (
+        <Moon className='h-5 w-5' aria-hidden />
+      )}
     </Button>
   );
 }
@@ -222,10 +237,25 @@ type QuickAction = {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'profile', label: 'Profile', description: 'View and edit your info', Icon: UserRound },
-  { id: 'notifications', label: 'Notifications', description: 'Control alerts and digests', Icon: Bell },
-  { id: 'billing', label: 'Billing', description: 'Update subscriptions and invoices', Icon: CreditCard },
-  { id: 'workspaces', label: 'Workspaces', description: 'Switch to another workspace', Icon: Settings },
-  { id: 'support', label: 'Support', description: 'Get help from the Taskez team', Icon: LifeBuoy }
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    description: 'Control alerts and digests',
+    Icon: Bell
+  }
+  // {
+  //   id: 'billing',
+  //   label: 'Billing',
+  //   description: 'Update subscriptions and invoices',
+  //   Icon: CreditCard
+  // },
+  // {
+  //   id: 'workspaces',
+  //   label: 'Workspaces',
+  //   description: 'Switch to another workspace',
+  //   Icon: Settings
+  // },
+  // { id: 'support', label: 'Support', description: 'Get help from the Taskez team', Icon: LifeBuoy }
 ];
 
 function ProfileDrawer() {
