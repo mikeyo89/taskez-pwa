@@ -14,11 +14,8 @@ export class AppDB extends Dexie {
   clients!: Table<Client, string>;
   members!: Table<Member, string>;
   services!: Table<Service, string>;
-  clientGroups!: Table<Client, string>;
-  clientContacts!: Table<Member, string>;
   projects!: Table<Project, string>;
   projectEvents!: Table<ProjectEvent, string>;
-  serviceCategories!: Table<Service, string>;
   projectServices!: Table<ProjectService, string>;
   projectServiceUnits!: Table<ProjectServiceUnit, string>;
   projectServiceExtras!: Table<ProjectServiceExtra, string>;
@@ -39,17 +36,14 @@ export class AppDB extends Dexie {
       clients: '&id, name, updated_at',
       members: '&id, client_id, last_name, updated_at, [client_id+last_name]',
       services: '&id, name, updated_at',
-      clientGroups: '&id, name, updated_at',
-      clientContacts:
-        '&id, client_id, last_name, updated_at, [client_id+last_name], [client_id+updated_at]',
-      projects: '&id, group_id, title, updated_at, [group_id+updated_at]',
+      projects: '&id, client_id, title, est_completion_date, completed_ind, updated_at, [client_id+updated_at], [completed_ind+updated_at], [est_completion_date]',
       projectEvents: '&id, project_id, reason, updated_at, [project_id+updated_at]',
-      serviceCategories: '&id, name, updated_at',
       projectServices:
-        '&id, project_id, service_id, updated_at, [project_id+service_id], [project_id+updated_at]',
-      projectServiceUnits: '&id, project_service_id, title, updated_at, [project_service_id+updated_at]',
+        '&id, project_id, service_id, approved_ind, completed_ind, paid_ind, updated_at, [project_id+service_id], [project_id+updated_at]',
+      projectServiceUnits:
+        '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, [project_service_id+updated_at]',
       projectServiceExtras:
-        '&id, project_service_id, title, budget_type, updated_at, [project_service_id+updated_at]'
+        '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, [project_service_id+updated_at]'
     });
 
     // Example migration pattern if/when you add indexes later:

@@ -36,6 +36,9 @@ export const ProjectSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional().default(''),
   budget: z.number().nonnegative().optional(),
+  est_completion_date: z.string(),
+  completed_ind: z.boolean().default(false),
+  completed_date: z.string().optional().default(''),
   updated_at: z.iso.datetime()
 });
 export type Project = z.infer<typeof ProjectSchema>;

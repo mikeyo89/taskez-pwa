@@ -1,6 +1,5 @@
 'use client';
 
-import { Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { useLiveServices } from '@/lib/hooks/useLiveServices';
@@ -11,7 +10,7 @@ export default function ServicesPage() {
   const { data, loading } = useLiveServices();
   return (
     <div className='flex flex-col gap-6'>
-      <section
+      {/* <section
         className='flex items-center gap-3 rounded-2xl border px-4 py-3'
         style={{
           borderColor: 'color-mix(in srgb, var(--border) 75%, transparent)',
@@ -30,7 +29,7 @@ export default function ServicesPage() {
           <h1 className='text-lg font-semibold tracking-tight'>Services</h1>
           <p className='text-sm text-muted-foreground'>What makes your clients come back?</p>
         </div>
-      </section>
+      </section> */}
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}

@@ -71,7 +71,7 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
           const client = row.original;
           const shouldTruncate = client.name && client.name.length > 25;
           return (
-            <div className='flex flex-col gap-1'>
+            <div className='flex max-w-[20rem] flex-col gap-1'>
               <Tooltip content={client.name} side='top'>
                 <span
                   className='text-sm font-medium text-foreground block max-w-[13rem] truncate'
@@ -147,7 +147,7 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
 
   return (
     <div
-      className='space-y-4 rounded-2xl border border-dashed border-border/70 bg-background/80 p-4 backdrop-blur-sm'
+      className='space-y-4 backdrop-blur-sm'
       style={{
         backgroundColor: 'color-mix(in srgb, var(--background) 96%, transparent)'
       }}
@@ -228,7 +228,10 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn('py-3 text-sm', cell.column.columnDef.meta?.className)}
+                      className={cn(
+                        'py-3 text-sm align-top max-w-[22rem] overflow-hidden',
+                        cell.column.columnDef.meta?.className
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

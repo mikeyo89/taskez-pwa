@@ -138,7 +138,7 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
 
   return (
     <div
-      className='space-y-4 rounded-2xl border border-dashed border-border/70 bg-background/80 p-4 backdrop-blur-sm'
+      className='space-y-4 backdrop-blur-sm'
       style={{
         backgroundColor: 'color-mix(in srgb, var(--background) 96%, transparent)'
       }}

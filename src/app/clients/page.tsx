@@ -1,17 +1,16 @@
 'use client';
 
-import { Users } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { useLiveClients } from '@/lib/hooks/useLiveClients';
-import { AddClientDialog } from './form';
 import { ClientsTable } from './data-table';
+import { AddClientDialog } from './form';
 
 export default function ClientsPage() {
   const { data, loading } = useLiveClients();
   return (
     <div className='flex flex-col gap-6'>
-      <section
+      {/* <section
         className='flex items-center gap-3 rounded-2xl border px-4 py-3'
         style={{
           borderColor: 'color-mix(in srgb, var(--border) 75%, transparent)',
@@ -30,7 +29,7 @@ export default function ClientsPage() {
           <h1 className='text-lg font-semibold tracking-tight'>Clients</h1>
           <p className='text-sm text-muted-foreground'>Monitor customer onboarding and health.</p>
         </div>
-      </section>
+      </section> */}
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}

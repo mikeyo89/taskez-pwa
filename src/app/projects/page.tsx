@@ -1,13 +1,18 @@
 'use client';
-
-import { Folder } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Card } from '@/components/ui/card';
+
+import { useLiveClients } from '@/lib/hooks/useLiveClients';
+import { useLiveProjects } from '@/lib/hooks/useLiveProjects';
+import { ProjectsTable } from './data-table';
+import { AddProjectDialog } from './form';
 
 export default function ProjectsPage() {
+  const { data: projects, loading } = useLiveProjects();
+  const { data: clients } = useLiveClients();
+
   return (
-    <div className='flex flex-col gap-6'>
-      <section
+    <div className='flex flex-col gap-6 pb-28'>
+      {/* <section
         className='flex items-center gap-3 rounded-2xl border px-4 py-3'
         style={{
           borderColor: 'color-mix(in srgb, var(--border) 75%, transparent)',
@@ -24,11 +29,9 @@ export default function ProjectsPage() {
         </div>
         <div>
           <h1 className='text-lg font-semibold tracking-tight'>Projects</h1>
-          <p className='text-sm text-muted-foreground'>
-            Track execution and delivery milestones.
-          </p>
+          <p className='text-sm text-muted-foreground'>Track your engagements with clients.</p>
         </div>
-      </section>
+      </section> */}
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -36,15 +39,10 @@ export default function ProjectsPage() {
         transition={{ duration: 0.25 }}
         className='grid gap-3'
       >
-        <Card
-          className='border border-dashed px-6'
-          style={{ borderColor: 'color-mix(in srgb, var(--border) 70%, transparent)' }}
-        >
-          <div className='text-sm text-muted-foreground'>
-            Projects will populate as soon as you create them from any client record.
-          </div>
-        </Card>
+        <ProjectsTable data={projects} clients={clients} loading={loading} />
       </motion.div>
+
+      <AddProjectDialog clients={clients} />
     </div>
   );
 }

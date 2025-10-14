@@ -52,7 +52,7 @@ export function AddServiceDialog() {
         <Button
           onClick={() => setOpen(true)}
           size='icon-lg'
-          className='rounded-full shadow-lg'
+          className='fixed bottom-28 right-6 z-40 rounded-full shadow-lg'
           style={{
             boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
           }}
