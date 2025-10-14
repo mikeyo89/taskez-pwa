@@ -32,7 +32,7 @@ export type Service = z.infer<typeof ServiceSchema>;
 
 export const ProjectSchema = z.object({
   id: z.uuid(),
-  group_id: z.uuid(),
+  client_id: z.uuid(),
   title: z.string().min(1),
   description: z.string().optional().default(''),
   budget: z.number().nonnegative().optional(),
@@ -53,6 +53,15 @@ export const ProjectServiceSchema = z.object({
   id: z.uuid(),
   project_id: z.uuid(),
   service_id: z.uuid(),
+  budget_type: z.enum(['dollar', 'percent']),
+  budget_amount: z.number().nonnegative(),
+  est_completion_date: z.string(),
+  approved_ind: z.boolean().default(false),
+  approved_date: z.string().optional().default(''),
+  completed_ind: z.boolean().default(false),
+  completed_date: z.string().optional().default(''),
+  paid_ind: z.boolean().default(false),
+  paid_date: z.string().optional().default(''),
   updated_at: z.iso.datetime()
 });
 export type ProjectService = z.infer<typeof ProjectServiceSchema>;
@@ -62,6 +71,15 @@ export const ProjectServiceUnitSchema = z.object({
   project_service_id: z.uuid(),
   title: z.string().min(1),
   description: z.string().optional().default(''),
+  budget_type: z.enum(['dollar', 'percent']),
+  budget_amount: z.number().nonnegative(),
+  est_completion_date: z.string(),
+  approved_ind: z.boolean().default(false),
+  approved_date: z.string().optional().default(''),
+  completed_ind: z.boolean().default(false),
+  completed_date: z.string().optional().default(''),
+  paid_ind: z.boolean().default(false),
+  paid_date: z.string().optional().default(''),
   updated_at: z.iso.datetime()
 });
 export type ProjectServiceUnit = z.infer<typeof ProjectServiceUnitSchema>;
@@ -71,7 +89,15 @@ export const ProjectServiceExtraSchema = z.object({
   project_service_id: z.uuid(),
   title: z.string().min(1),
   description: z.string().optional().default(''),
-  budget_type: z.enum(['dollar', 'percent']).optional().default('dollar'),
+  budget_type: z.enum(['dollar']).optional().default('dollar'),
+  budget_amount: z.number().nonnegative(),
+  est_completion_date: z.string(),
+  approved_ind: z.boolean().default(false),
+  approved_date: z.string().optional().default(''),
+  completed_ind: z.boolean().default(false),
+  completed_date: z.string().optional().default(''),
+  paid_ind: z.boolean().default(false),
+  paid_date: z.string().optional().default(''),
   updated_at: z.iso.datetime()
 });
 export type ProjectServiceExtra = z.infer<typeof ProjectServiceExtraSchema>;
