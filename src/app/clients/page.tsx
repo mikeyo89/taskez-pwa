@@ -38,10 +38,10 @@ export default function ClientsPage() {
         className='grid gap-3'
       >
         <ClientsTable data={data} loading={loading} />
-        <div className='mt-auto flex justify-end'>
-          <AddClientDialog />
-        </div>
       </motion.div>
+      <div className='flex justify-end'>
+        <AddClientDialog />
+      </div>
     </div>
   );
 }

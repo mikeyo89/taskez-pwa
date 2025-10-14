@@ -421,7 +421,7 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='sm:max-w-[360px]'>
         <DialogHeader>
-          <DialogTitle>Delete project?</DialogTitle>
+          <DialogTitle>Delete Project?</DialogTitle>
           <DialogDescription>
             {project
               ? `“${project.title}” will be removed permanently. This action cannot be undone.`

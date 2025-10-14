@@ -38,10 +38,10 @@ export default function ServicesPage() {
         className='grid gap-3'
       >
         <ServicesTable data={data} loading={loading} />
-        <div className='mt-auto flex justify-end'>
-          <AddServiceDialog />
-        </div>
       </motion.div>
+      <div className='flex justify-end'>
+        <AddServiceDialog />
+      </div>
     </div>
   );
 }

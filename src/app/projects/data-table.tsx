@@ -49,6 +49,7 @@ import {
   type MouseEvent,
   type ReactElement
 } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { DeleteProjectDialog, UpdateProjectDialog } from './form';
 
@@ -400,6 +401,7 @@ function ProjectRowActions({
   children: ReactElement;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
 
   let child: ReactElement = children;
   if (isValidElement(children)) {
@@ -436,7 +438,10 @@ function ProjectRowActions({
     onDelete(project);
   };
 
-  const handleView = () => closeMenu();
+  const handleView = () => {
+    closeMenu();
+    router.push(`/projects/${project.id}`);
+  };
 
   const handlePrint = () => closeMenu();
 

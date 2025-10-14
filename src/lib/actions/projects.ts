@@ -644,8 +644,7 @@ function formatBudget(amount: number, type: 'dollar' | 'percent'): string {
 }
 
 async function resolveServiceName(service_id: string): Promise<string> {
-  const service =
-    (await db.serviceCategories.get(service_id)) ?? (await db.services.get(service_id));
+  const service = await db.services.get(service_id);
   return service?.name ?? `Service ${service_id.slice(0, 8)}`;
 }
 

@@ -1,0 +1,214 @@
+'use client';
+
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Plus } from 'lucide-react';
+import { motion } from 'motion/react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
+import { useLiveServices } from '@/lib/hooks/useLiveServices';
+import { useProjectDetail } from '@/lib/hooks/useProjectDetail';
+import { useProjectEventsQuery } from '@/lib/hooks/useProjectEventsQuery';
+import { useProjectServicesQuery } from '@/lib/hooks/useProjectServicesQuery';
+
+import { ProjectEventsTab } from './project-events-tab';
+import { ProjectServiceDialog } from './project-service-dialog';
+import { ProjectServiceDeleteDialog } from './project-service-delete-dialog';
+import { ProjectServicesTab } from './project-services-tab';
+
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD'
+});
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
+export default function ProjectDetailPage() {
+  const params = useParams<{ projectId?: string }>();
+  const projectIdParam = params?.projectId;
+  const projectId = Array.isArray(projectIdParam) ? projectIdParam[0] : projectIdParam;
+
+  const { project, client, loading: detailLoading } = useProjectDetail(projectId);
+  const servicesQuery = useProjectServicesQuery(projectId);
+  const eventsQuery = useProjectEventsQuery(projectId);
+  const { data: allServices } = useLiveServices();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [selectedService, setSelectedService] = useState<ProjectServiceWithChildren | null>(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectServiceWithChildren | null>(null);
+
+  const availableServicesLookup = useMemo(
+    () => new Map((allServices ?? []).map((service) => [service.id, service.name])),
+    [allServices]
+  );
+
+  if (!projectId) {
+    return (
+      <div className='flex flex-col gap-3'>
+        <Button asChild variant='ghost' className='w-fit gap-2'>
+          <Link href='/projects'>
+            <ArrowLeft className='h-4 w-4' />
+            Back to Projects
+          </Link>
+        </Button>
+        <p className='text-sm text-muted-foreground'>We could not determine which project to show.</p>
+      </div>
+    );
+  }
+
+  if (!detailLoading && !project) {
+    return (
+      <div className='flex flex-col gap-3'>
+        <Button asChild variant='ghost' className='w-fit gap-2'>
+          <Link href='/projects'>
+            <ArrowLeft className='h-4 w-4' />
+            Back to Projects
+          </Link>
+        </Button>
+        <p className='text-sm text-muted-foreground'>We could not find that project.</p>
+      </div>
+    );
+  }
+
+  const handleCreateClick = () => {
+    if (!allServices || allServices.length === 0) {
+      toast.error('Add at least one service before linking it to a project.');
+      return;
+    }
+    setSelectedService(null);
+    setDialogMode('create');
+    setDialogOpen(true);
+  };
+
+  const handleModify = (service: ProjectServiceWithChildren) => {
+    setSelectedService(service);
+    setDialogMode('edit');
+    setDialogOpen(true);
+  };
+
+  const handleDelete = (service: ProjectServiceWithChildren) => {
+    setDeleteTarget(service);
+    setDeleteOpen(true);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedService(null);
+      setDialogMode('create');
+    }
+    setDialogOpen(open);
+  };
+
+  const handleDeleteOpenChange = (open: boolean) => {
+    if (!open) {
+      setDeleteTarget(null);
+    }
+    setDeleteOpen(open);
+  };
+
+  return (
+    <div className='flex flex-col gap-8 pb-28'>
+      <header className='flex flex-col gap-4'>
+        <div className='flex items-center justify-between gap-3'>
+          <Button asChild variant='ghost' size='sm' className='w-fit gap-2 px-0 text-sm'>
+            <Link href='/projects'>
+              <ArrowLeft className='h-4 w-4' />
+              Back
+            </Link>
+          </Button>
+        </div>
+
+        <div className='flex flex-col gap-2'>
+          <h1 className='text-2xl font-semibold tracking-tight'>
+            {project?.title ?? 'Loading project…'}
+          </h1>
+          <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
+            {project?.description && <span>{project.description}</span>}
+            {typeof project?.budget === 'number' && (
+              <span>Budget: {currencyFormatter.format(project.budget)}</span>
+            )}
+            {project?.est_completion_date && (
+              <span>
+                Est. completion:{' '}
+                {formatDateDisplay(project.est_completion_date) ?? project.est_completion_date}
+              </span>
+            )}
+            {client?.name && <span>Client: {client.name}</span>}
+          </div>
+        </div>
+      </header>
+
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className='flex flex-col gap-6'
+      >
+        <Tabs defaultValue='services' className='flex flex-col gap-4'>
+          <TabsList>
+            <TabsTrigger value='services'>Services</TabsTrigger>
+            <TabsTrigger value='events'>Events</TabsTrigger>
+          </TabsList>
+          <TabsContent value='services'>
+            <ProjectServicesTab
+              services={servicesQuery.data ?? []}
+              serviceLookup={availableServicesLookup}
+              loading={servicesQuery.isLoading || servicesQuery.isFetching}
+              onModify={handleModify}
+              onDelete={handleDelete}
+            />
+          </TabsContent>
+          <TabsContent value='events'>
+            <ProjectEventsTab events={eventsQuery.data ?? []} loading={eventsQuery.isLoading} />
+          </TabsContent>
+        </Tabs>
+      </motion.section>
+
+      <ProjectServiceDialog
+        projectId={projectId}
+        open={dialogOpen}
+        mode={dialogMode}
+        onOpenChange={handleDialogOpenChange}
+        initialService={selectedService ?? undefined}
+        serviceOptions={allServices ?? []}
+      />
+
+      <ProjectServiceDeleteDialog
+        open={deleteOpen}
+        onOpenChange={handleDeleteOpenChange}
+        service={deleteTarget}
+        serviceLookup={availableServicesLookup}
+      />
+
+      <Button
+        size='icon-lg'
+        className='fixed bottom-28 right-6 z-40 rounded-full shadow-lg'
+        style={{
+          boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
+        }}
+        aria-label='Link service to project'
+        onClick={handleCreateClick}
+      >
+        <Plus className='h-5 w-5' aria-hidden />
+      </Button>
+    </div>
+  );
+}
+
+function formatDateDisplay(value?: string) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return dateFormatter.format(date);
+}
