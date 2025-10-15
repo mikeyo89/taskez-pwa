@@ -14,8 +14,16 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import {
   Sheet,
   SheetClose,
@@ -40,6 +48,7 @@ import {
 } from '@/lib/actions/projects';
 import { useProjectServiceUnits } from '@/lib/hooks/useProjectServiceUnits';
 import type { ProjectServiceUnit } from '@/lib/models';
+import { cn } from '@/lib/utils';
 
 type ProjectServiceUnitsSectionProps = {
   projectServiceId?: string;
@@ -401,123 +410,172 @@ function ProjectServiceUnitDrawer({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side='right' className='w-full sm:max-w-xl'>
-        <form className='flex h-full flex-col gap-4' onSubmit={handleSubmit}>
-          <SheetHeader>
-            <SheetTitle>{mode === 'create' ? 'Add Unit' : 'Update Unit'}</SheetTitle>
+      <SheetContent side='right' className='flex w-full flex-col p-0 sm:max-w-xl'>
+        <form className='flex h-full flex-col' onSubmit={handleSubmit}>
+          <SheetHeader className='relative border-b border-border/70 bg-background/90 px-5 py-4 text-left shadow-sm backdrop-blur'>
+            <div className='absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-accent/60 via-accent/20 to-transparent' />
+            <SheetTitle className='flex items-center gap-2 text-base font-semibold tracking-tight text-foreground'>
+              <span className='flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-xs font-semibold uppercase text-accent-foreground'>
+                {mode === 'create' ? 'New' : 'Edit'}
+              </span>
+              {mode === 'create' ? 'Add Unit' : 'Update Unit'}
+            </SheetTitle>
           </SheetHeader>
 
-          <div className='grid flex-1 gap-4 overflow-y-auto px-2 py-1'>
-            <div className='grid gap-2'>
-              <Label htmlFor='unit-title' className='font-semibold'>
-                Title
-              </Label>
-              <Input
-                id='unit-title'
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='unit-description' className='font-semibold'>
-                Description
-              </Label>
-              <Input
-                id='unit-description'
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder='Optional details'
-              />
-            </div>
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <div className='grid gap-2'>
-                <Label htmlFor='unit-budget-type' className='font-semibold'>
-                  Budget Type
-                </Label>
-                <select
-                  id='unit-budget-type'
-                  className='h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
-                  value={budgetType}
-                  onChange={(event) =>
-                    setBudgetType(event.target.value as ProjectServiceUnit['budget_type'])
-                  }
-                >
-                  <option value='dollar'>$ (Dollar)</option>
-                  <option value='percent'>% (Percent)</option>
-                </select>
-              </div>
-              <div className='grid gap-2'>
-                <Label htmlFor='unit-budget-amount' className='font-semibold'>
-                  Budget Amount
-                </Label>
-                <Input
-                  id='unit-budget-amount'
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={budgetAmount}
-                  onChange={(event) => setBudgetAmount(event.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='unit-est-completion' className='font-semibold'>
-                Estimated Completion Date
-              </Label>
-              <Input
-                id='unit-est-completion'
-                type='date'
-                value={estCompletionDate}
-                onChange={(event) => setEstCompletionDate(event.target.value)}
-                required
-              />
-            </div>
+          <div className='flex-1 overflow-y-auto px-5 pb-6 pt-5'>
+            <div className='space-y-5'>
+              <section className='space-y-4 rounded-2xl border border-border/60 bg-background/90 p-5 shadow-sm backdrop-blur'>
+                <div className='grid gap-1.5'>
+                  <Label htmlFor='unit-title' className='text-sm font-semibold tracking-tight text-muted-foreground'>
+                    Title
+                  </Label>
+                  <Input
+                    id='unit-title'
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    className='h-10 text-sm focus-visible:ring-accent/40'
+                    required
+                  />
+                </div>
+                <div className='grid gap-1.5'>
+                  <Label htmlFor='unit-description' className='text-sm font-semibold tracking-tight text-muted-foreground'>
+                    Description
+                  </Label>
+                  <Input
+                    id='unit-description'
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    className='h-10 text-sm focus-visible:ring-accent/40'
+                    placeholder='Optional details'
+                  />
+                </div>
+                <div className='grid gap-4 sm:grid-cols-2'>
+                  <div className='grid gap-1.5'>
+                    <Label htmlFor='unit-budget-type' className='text-sm font-semibold tracking-tight text-muted-foreground'>
+                      Budget Type
+                    </Label>
+                    <Select
+                      value={budgetType}
+                      onValueChange={(value) =>
+                        setBudgetType(value as ProjectServiceUnit['budget_type'])
+                      }
+                    >
+                      <SelectTrigger
+                        id='unit-budget-type'
+                        className='h-10 w-full text-sm focus-visible:ring-accent/40'
+                      >
+                        <SelectValue placeholder='Select budget type' />
+                      </SelectTrigger>
+                      <SelectContent side='bottom' align='start'>
+                        <SelectItem value='dollar'>$ (Dollar)</SelectItem>
+                        <SelectItem value='percent'>% (Percent)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label htmlFor='unit-budget-amount' className='text-sm font-semibold tracking-tight text-muted-foreground'>
+                      Budget Amount
+                    </Label>
+                    <Input
+                      id='unit-budget-amount'
+                      type='number'
+                      min='0'
+                      step='0.01'
+                      value={budgetAmount}
+                      onChange={(event) => setBudgetAmount(event.target.value)}
+                      className='h-10 text-sm focus-visible:ring-accent/40'
+                      required
+                    />
+                  </div>
+                </div>
+                <div className='grid gap-1.5'>
+                  <Label htmlFor='unit-est-completion' className='text-sm font-semibold tracking-tight text-muted-foreground'>
+                    Estimated Completion Date
+                  </Label>
+                  <Input
+                    id='unit-est-completion'
+                    type='date'
+                    value={estCompletionDate}
+                    onChange={(event) => setEstCompletionDate(event.target.value)}
+                    className='h-10 text-sm focus-visible:ring-accent/40'
+                    required
+                  />
+                </div>
+              </section>
 
-            <UnitStatusRow
-              id='unit-approved'
-              label='Approved?'
-              checked={approved}
-              dateValue={approvedDate}
-              onToggle={(next) => {
-                setApproved(next);
-                if (next && !approvedDate) setApprovedDate(todayInputValue());
-              }}
-              onDateChange={setApprovedDate}
-            />
-            <UnitStatusRow
-              id='unit-completed'
-              label='Completed?'
-              checked={completed}
-              dateValue={completedDate}
-              onToggle={(next) => {
-                setCompleted(next);
-                if (next && !completedDate) setCompletedDate(todayInputValue());
-              }}
-              onDateChange={setCompletedDate}
-            />
-            <UnitStatusRow
-              id='unit-paid'
-              label='Paid?'
-              checked={paid}
-              dateValue={paidDate}
-              onToggle={(next) => {
-                setPaid(next);
-                if (next && !paidDate) setPaidDate(todayInputValue());
-              }}
-              onDateChange={setPaidDate}
-            />
+              <section className='space-y-3 rounded-2xl border border-accent/30 bg-accent/10 p-5 shadow-sm backdrop-blur'>
+                <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
+                  <h4 className='text-sm font-semibold leading-tight text-accent-foreground'>Status timeline</h4>
+                  <p className='text-xs text-accent-foreground/80'>Toggle milestones as they are reached.</p>
+                </div>
+
+                <div className='space-y-3'>
+                  <UnitStatusRow
+                    id='unit-approved'
+                    label='Approved?'
+                    checked={approved}
+                    dateValue={approvedDate}
+                    onToggle={(next) => {
+                      setApproved(next);
+                      if (next && !approvedDate) setApprovedDate(todayInputValue());
+                    }}
+                    onDateChange={setApprovedDate}
+                  />
+                  <UnitStatusRow
+                    id='unit-completed'
+                    label='Completed?'
+                    checked={completed}
+                    dateValue={completedDate}
+                    onToggle={(next) => {
+                      setCompleted(next);
+                      if (next && !completedDate) setCompletedDate(todayInputValue());
+                    }}
+                    onDateChange={setCompletedDate}
+                  />
+                  <UnitStatusRow
+                    id='unit-paid'
+                    label='Paid?'
+                    checked={paid}
+                    dateValue={paidDate}
+                    onToggle={(next) => {
+                      setPaid(next);
+                      if (next && !paidDate) setPaidDate(todayInputValue());
+                    }}
+                    onDateChange={setPaidDate}
+                  />
+                </div>
+              </section>
+            </div>
           </div>
 
-          <SheetFooter className='flex flex-col gap-3 border-t border-border/60 pt-4'>
+          <SheetFooter
+            className='flex flex-col gap-3 border-t border-border/60 bg-background/95 px-5 pt-4 shadow-sm backdrop-blur'
+            style={{
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)'
+            }}
+          >
             <div className='flex justify-between gap-3'>
               <SheetClose asChild>
-                <Button type='button' variant='outline' disabled={pending}>
+                <Button
+                  type='button'
+                  variant='outline'
+                  className={cn(
+                    'w-full border-border/70 text-sm font-medium shadow-sm transition-transform hover:-translate-y-0.5',
+                    'sm:w-auto'
+                  )}
+                  disabled={pending}
+                >
                   Cancel
                 </Button>
               </SheetClose>
-              <Button type='submit' disabled={pending}>
+              <Button
+                type='submit'
+                className={cn(
+                  'w-full bg-accent text-sm font-semibold text-accent-foreground shadow-md transition-transform hover:-translate-y-0.5 hover:bg-accent/90 focus-visible:ring-accent/50',
+                  'sm:w-auto'
+                )}
+                disabled={pending}
+              >
                 {pending && <Spinner className='mr-2' />}
                 {mode === 'create' ? 'Save Unit' : 'Update Unit'}
               </Button>
@@ -540,29 +598,33 @@ type UnitStatusRowProps = {
 
 function UnitStatusRow({ id, label, checked, dateValue, onToggle, onDateChange }: UnitStatusRowProps) {
   return (
-    <div className='flex flex-wrap items-center gap-3'>
-      <div className='flex items-center gap-2'>
-        <input
+    <div className='grid gap-3 rounded-xl border border-accent/25 bg-background/90 px-3 py-3 shadow-sm transition-colors sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center'>
+      <div className='flex items-center gap-3'>
+        <Checkbox
           id={`${id}-checkbox`}
-          type='checkbox'
           checked={checked}
-          onChange={(event) => onToggle(event.target.checked)}
-          className='h-4 w-4 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+          onCheckedChange={(value) => onToggle(value === true)}
+          className='h-4 w-4 border-border data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground'
         />
-        <Label htmlFor={`${id}-checkbox`} className='font-semibold'>
+        <Label htmlFor={`${id}-checkbox`} className='text-sm font-medium text-accent-foreground'>
           {label}
         </Label>
       </div>
-      {checked && (
+      <div className='h-10 w-full sm:w-full'>
         <Input
           id={`${id}-date`}
           type='date'
           value={normalizeDateForInput(dateValue)}
           onChange={(event) => onDateChange(event.target.value)}
-          className='max-w-[180px]'
-          required
+          className={cn(
+            'h-10 w-full text-sm transition-opacity duration-200 ease-in-out focus-visible:ring-accent/40',
+            checked ? 'opacity-100' : 'pointer-events-none opacity-0'
+          )}
+          tabIndex={checked ? 0 : -1}
+          required={checked}
+          aria-hidden={!checked}
         />
-      )}
+      </div>
     </div>
   );
 }
