@@ -1,5 +1,5 @@
-import type { NextConfig } from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
+import type { NextConfig } from 'next';
 
 const withPWA = withPWAInit({
   dest: 'public',
@@ -35,8 +35,12 @@ const withPWA = withPWAInit({
   }
 });
 
+// const isProd = process.env.NODE_ENV === 'production';
+// const repo = 'your-repo-name'; // needed only for project pages
+
 const config: NextConfig = {
-  output: 'standalone',
+  // output: 'standalone',
+  output: 'export', // for github pages
   experimental: { typedRoutes: true },
   images: { unoptimized: true }, // lean runtime; offload heavy transforms later
   async headers() {
@@ -76,7 +80,10 @@ const config: NextConfig = {
         ]
       }
     ];
-  }
+  },
+  // basePath: isProd ? `/${repo}` : '',
+  // assetPrefix: isProd ? `/${repo}/` : '',
+  trailingSlash: true // avoids 404s for "folder as page"
 };
 
 export default withPWA(config);
