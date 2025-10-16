@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { sendNotification, subscribeUser, unsubscribeUser } from '../actions';
+const IS_PROD = process.env.IS_PROD === 'true';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -30,7 +31,7 @@ export function PushNotificationManager() {
 
   async function registerServiceWorker() {
     const registration = await navigator.serviceWorker.register('/taskez-pwa/sw.js', {
-      scope: '/taskez-pwa/',
+      scope: IS_PROD ? '' : '/taskez-pwa/',
       updateViaCache: 'none'
     });
     const sub = await registration.pushManager.getSubscription();
