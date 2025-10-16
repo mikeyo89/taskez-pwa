@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,6 @@ import {
 import type { Service } from '@/lib/models';
 import { cn } from '@/lib/utils';
 
-import { ProjectServiceUnitsSection } from './project-service-units-section';
-
-type StepKey = 'service' | 'units';
-
 type ProjectServiceDialogProps = {
   projectId: string;
   open: boolean;
@@ -33,9 +29,10 @@ type ProjectServiceDialogProps = {
   mode: 'create' | 'edit';
   serviceOptions: Service[];
   initialService?: ProjectServiceWithChildren;
+  onCompleted?: (serviceId: string) => void;
 };
 
-type StepOneState = {
+type FormState = {
   serviceId: string;
   budgetType: 'dollar' | 'percent';
   budgetAmount: string;
@@ -54,36 +51,29 @@ export function ProjectServiceDialog({
   onOpenChange,
   mode,
   serviceOptions,
-  initialService
+  initialService,
+  onCompleted
 }: ProjectServiceDialogProps) {
-  const [activeStep, setActiveStep] = useState<StepKey>('service');
   const [pending, setPending] = useState(false);
   const [currentService, setCurrentService] = useState<ProjectServiceWithChildren | null>(null);
-  const [stepState, setStepState] = useState<StepOneState>(() => createDefaultStepState());
+  const [formState, setFormState] = useState<FormState>(() => createDefaultFormState());
 
   useEffect(() => {
     if (!open) {
-      setActiveStep('service');
-      setCurrentService(null);
-      setStepState(createDefaultStepState());
       setPending(false);
+      setCurrentService(null);
+      setFormState(createDefaultFormState());
       return;
     }
 
     if (initialService) {
       setCurrentService(initialService);
-      setStepState(createStateFromService(initialService));
+      setFormState(createStateFromService(initialService));
     } else {
       setCurrentService(null);
-      setStepState(createDefaultStepState());
+      setFormState(createDefaultFormState());
     }
-    setActiveStep('service');
   }, [initialService, open]);
-
-  const serviceNameLookup = useMemo(
-    () => new Map(serviceOptions.map((service) => [service.id, service.name])),
-    [serviceOptions]
-  );
 
   const handleOpenChange = (next: boolean) => {
     if (!pending) {
@@ -91,20 +81,20 @@ export function ProjectServiceDialog({
     }
   };
 
-  const updateStepState = (patch: Partial<StepOneState>) => {
-    setStepState((prev) => ({ ...prev, ...patch }));
+  const updateFormState = (patch: Partial<FormState>) => {
+    setFormState((prev) => ({ ...prev, ...patch }));
   };
 
-  const handleSubmitStepOne = async () => {
-    if (!stepState.serviceId) {
+  const handleSubmit = async () => {
+    if (!formState.serviceId) {
       toast.error('Select a service.');
       return;
     }
-    if (!stepState.estCompletionDate) {
+    if (!formState.estCompletionDate) {
       toast.error('Estimated completion date is required.');
       return;
     }
-    const amount = Number(stepState.budgetAmount);
+    const amount = Number(formState.budgetAmount);
     if (Number.isNaN(amount) || amount < 0) {
       toast.error('Enter a valid budget amount.');
       return;
@@ -115,45 +105,40 @@ export function ProjectServiceDialog({
       if (!currentService || mode === 'create') {
         const created = await createProjectService({
           project_id: projectId,
-          service_id: stepState.serviceId,
-          budget_type: stepState.budgetType,
+          service_id: formState.serviceId,
+          budget_type: formState.budgetType,
           budget_amount: amount,
-          est_completion_date: stepState.estCompletionDate,
-          approved_ind: stepState.approved,
-          approved_date: normalizedDateForPersistence(stepState.approved, stepState.approvedDate),
-          completed_ind: stepState.completed,
-          completed_date: normalizedDateForPersistence(
-            stepState.completed,
-            stepState.completedDate
-          ),
-          paid_ind: stepState.paid,
-          paid_date: normalizedDateForPersistence(stepState.paid, stepState.paidDate)
+          est_completion_date: formState.estCompletionDate,
+          approved_ind: formState.approved,
+          approved_date: normalizedDateForPersistence(formState.approved, formState.approvedDate),
+          completed_ind: formState.completed,
+          completed_date: normalizedDateForPersistence(formState.completed, formState.completedDate),
+          paid_ind: formState.paid,
+          paid_date: normalizedDateForPersistence(formState.paid, formState.paidDate)
         });
-        setCurrentService({ ...created, units: [], extras: [] });
         toast.success('Project service created');
+        onCompleted?.(created.id);
       } else {
         const updated = await updateProjectService(currentService.id, {
           project_id: projectId,
-          service_id: stepState.serviceId,
-          budget_type: stepState.budgetType,
+          service_id: formState.serviceId,
+          budget_type: formState.budgetType,
           budget_amount: amount,
-          est_completion_date: stepState.estCompletionDate,
-          approved_ind: stepState.approved,
-          approved_date: normalizedDateForPersistence(stepState.approved, stepState.approvedDate),
-          completed_ind: stepState.completed,
-          completed_date: normalizedDateForPersistence(
-            stepState.completed,
-            stepState.completedDate
-          ),
-          paid_ind: stepState.paid,
-          paid_date: normalizedDateForPersistence(stepState.paid, stepState.paidDate)
+          est_completion_date: formState.estCompletionDate,
+          approved_ind: formState.approved,
+          approved_date: normalizedDateForPersistence(formState.approved, formState.approvedDate),
+          completed_ind: formState.completed,
+          completed_date: normalizedDateForPersistence(formState.completed, formState.completedDate),
+          paid_ind: formState.paid,
+          paid_date: normalizedDateForPersistence(formState.paid, formState.paidDate)
         });
         setCurrentService((prev) =>
           prev ? { ...prev, ...updated } : { ...updated, units: [], extras: [] }
         );
         toast.success('Project service updated');
+        onCompleted?.(currentService?.id ?? initialService?.id ?? updated.id);
       }
-      setActiveStep('units');
+      onOpenChange(false);
     } catch (error) {
       console.error(error);
       toast.error('Unable to save project service. Try again.');
@@ -163,157 +148,56 @@ export function ProjectServiceDialog({
   };
 
   const handleCancel = () => {
-    onOpenChange(false);
+    if (!pending) {
+      onOpenChange(false);
+    }
   };
-
-  const canAccessUnits = Boolean(currentService);
-
-  const serviceName =
-    currentService && serviceNameLookup.get(currentService.service_id)
-      ? serviceNameLookup.get(currentService.service_id)!
-      : undefined;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:min-w-[100vw] max-h-[90vh] overflow-y-scroll'>
-        <div className='flex h-full flex-col gap-4 overflow-y-scroll'>
-          <DialogHeader>
-            <DialogTitle>
-              {mode === 'create' ? 'Add Service to Project' : 'Update Project Service'}
-            </DialogTitle>
-            <DialogDescription>
-              Link your services to track budgets, completion, and billing milestones.
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent className='sm:max-w-2xl'>
+        <DialogHeader className='space-y-2'>
+          <DialogTitle>
+            {mode === 'create' ? 'Add Service to Project' : 'Update Project Service'}
+          </DialogTitle>
+          <DialogDescription>
+            Link your services to track budgets, completion, and billing milestones.
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className='flex-1 overflow-y-auto pr-1'>
-            <div className='flex flex-col gap-4 pb-1'>
-              <StepperNav
-                activeStep={activeStep}
-                canAccessUnits={canAccessUnits}
-                onSelectStep={(step) => {
-                  if (step === 'units' && !canAccessUnits) return;
-                  setActiveStep(step);
-                }}
-                serviceName={serviceName}
-              />
-
-              <div className='space-y-3'>
-                <StepCard
-                  index={1}
-                  title='Project Service'
-                  description='Define the service and its budget.'
-                  active={activeStep === 'service'}
-                  completed={canAccessUnits}
-                  onSelect={() => setActiveStep('service')}
-                >
-                  <ProjectServiceStepForm
-                    serviceOptions={serviceOptions}
-                    state={stepState}
-                    updateState={updateStepState}
-                    pending={pending}
-                    onSubmit={handleSubmitStepOne}
-                    onCancel={handleCancel}
-                  />
-                </StepCard>
-
-                <StepCard
-                  index={2}
-                  title='Units'
-                  description='Break the work into trackable units.'
-                  active={activeStep === 'units'}
-                  completed={false}
-                  disabled={!canAccessUnits}
-                  onSelect={() => canAccessUnits && setActiveStep('units')}
-                >
-                  <ProjectServiceUnitsSection
-                    projectServiceId={currentService?.id}
-                    serviceName={serviceName}
-                  />
-                </StepCard>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProjectServiceForm
+          mode={mode}
+          state={formState}
+          serviceOptions={serviceOptions}
+          pending={pending}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          updateState={updateFormState}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
-type StepCardProps = {
-  index: number;
-  title: string;
-  description: string;
-  active: boolean;
-  completed?: boolean;
-  disabled?: boolean;
-  onSelect: () => void;
-  children: ReactNode;
-};
-
-function StepCard({
-  index,
-  title,
-  description,
-  active,
-  completed = false,
-  disabled = false,
-  onSelect,
-  children
-}: StepCardProps) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border transition-colors',
-        active
-          ? 'border-primary/70 bg-primary/10'
-          : 'border-border/60 bg-muted/10 hover:border-primary/40',
-        disabled && 'opacity-60'
-      )}
-    >
-      <button
-        type='button'
-        onClick={onSelect}
-        disabled={disabled}
-        className='flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed'
-      >
-        <span
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
-            active || completed
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {completed && !active ? '✓' : index}
-        </span>
-        <div className='flex flex-1 flex-col'>
-          <span className='text-sm font-semibold text-foreground'>{title}</span>
-          <span className='text-xs text-muted-foreground'>{description}</span>
-        </div>
-      </button>
-      <div className={cn('grid gap-4 px-4 pb-4', active ? 'pt-2' : 'hidden')}>{children}</div>
-    </div>
-  );
-}
-
-type ProjectServiceStepFormProps = {
-  state: StepOneState;
-  updateState: (patch: Partial<StepOneState>) => void;
+type ProjectServiceFormProps = {
+  mode: 'create' | 'edit';
+  state: FormState;
+  updateState: (patch: Partial<FormState>) => void;
   serviceOptions: Service[];
   pending: boolean;
   onSubmit: () => void;
   onCancel: () => void;
 };
 
-function ProjectServiceStepForm({
+function ProjectServiceForm({
+  mode,
   state,
   updateState,
   serviceOptions,
   pending,
   onSubmit,
   onCancel
-}: ProjectServiceStepFormProps) {
+}: ProjectServiceFormProps) {
   return (
     <form
       className='grid gap-4'
@@ -363,7 +247,7 @@ function ProjectServiceStepForm({
             value={state.budgetType}
             onChange={(event) =>
               updateState({
-                budgetType: event.target.value as StepOneState['budgetType']
+                budgetType: event.target.value as FormState['budgetType']
               })
             }
           >
@@ -444,13 +328,17 @@ function ProjectServiceStepForm({
         onDateChange={(value) => updateState({ paidDate: value })}
       />
 
+      <p className='text-xs text-muted-foreground'>
+        Save the service to manage its units from the detail view.
+      </p>
+
       <div className='flex justify-end gap-3 pt-2'>
         <Button type='button' variant='outline' onClick={onCancel} disabled={pending}>
           Cancel
         </Button>
         <Button type='submit' disabled={pending}>
           {pending && <Spinner className='mr-2' />}
-          Save &amp; Next
+          {mode === 'create' ? 'Save service' : 'Update service'}
         </Button>
       </div>
     </form>
@@ -495,50 +383,7 @@ function StatusRow({ id, label, checked, dateValue, onToggle, onDateChange }: St
   );
 }
 
-function StepperNav({
-  activeStep,
-  canAccessUnits,
-  onSelectStep,
-  serviceName
-}: {
-  activeStep: StepKey;
-  canAccessUnits: boolean;
-  onSelectStep: (step: StepKey) => void;
-  serviceName?: string;
-}) {
-  return (
-    <nav className='flex items-center gap-3 text-xs font-semibold uppercase text-muted-foreground'>
-      <button
-        type='button'
-        onClick={() => onSelectStep('service')}
-        className={cn(
-          'rounded-full px-3 py-1 transition-colors',
-          activeStep === 'service' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-        )}
-      >
-        Service
-      </button>
-      <span className='opacity-60'>→</span>
-      <button
-        type='button'
-        onClick={() => (canAccessUnits ? onSelectStep('units') : undefined)}
-        className={cn(
-          'rounded-full px-3 py-1 transition-colors',
-          activeStep === 'units'
-            ? 'bg-primary text-primary-foreground'
-            : canAccessUnits
-            ? 'bg-muted'
-            : 'bg-muted/60 cursor-not-allowed'
-        )}
-        disabled={!canAccessUnits}
-      >
-        Units {serviceName ? `: ${serviceName}` : ''}
-      </button>
-    </nav>
-  );
-}
-
-function createDefaultStepState(): StepOneState {
+function createDefaultFormState(): FormState {
   return {
     serviceId: '',
     budgetType: 'dollar',
@@ -553,7 +398,7 @@ function createDefaultStepState(): StepOneState {
   };
 }
 
-function createStateFromService(service: ProjectServiceWithChildren): StepOneState {
+function createStateFromService(service: ProjectServiceWithChildren): FormState {
   return {
     serviceId: service.service_id,
     budgetType: service.budget_type,
