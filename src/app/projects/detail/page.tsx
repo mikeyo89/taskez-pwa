@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo, useState } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
 import { useLiveServices } from '@/lib/hooks/useLiveServices';
@@ -32,9 +33,22 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 export default function ProjectDetailPage() {
-  const params = useParams<{ projectId?: string }>();
-  const projectIdParam = params?.projectId;
-  const projectId = Array.isArray(projectIdParam) ? projectIdParam[0] : projectIdParam;
+  return (
+    <Suspense
+      fallback={
+        <div className='flex min-h-[60vh] items-center justify-center'>
+          <Spinner className='h-6 w-6 animate-spin text-muted-foreground' />
+        </div>
+      }
+    >
+      <ProjectDetailContent />
+    </Suspense>
+  );
+}
+
+function ProjectDetailContent() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('projectId') ?? '';
 
   const { project, client, loading: detailLoading } = useProjectDetail(projectId);
   const servicesQuery = useProjectServicesQuery(projectId);

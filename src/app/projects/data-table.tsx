@@ -441,7 +441,7 @@ function ProjectRowActions({
 
   const handleView = () => {
     closeMenu();
-    router.push(`/projects/${project.id}`);
+    router.push(`/projects/detail?projectId=${encodeURIComponent(project.id)}`);
   };
 
   const handlePrint = () => closeMenu();

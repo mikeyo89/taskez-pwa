@@ -32,7 +32,7 @@ export default function MobileAppBar() {
       <div
         className='mx-auto flex w-full max-w-5xl items-center justify-between px-3 py-3'
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.75rem)'
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.2rem)'
         }}
       >
         {NAV_ITEMS.map(({ href, Icon, label }) => {

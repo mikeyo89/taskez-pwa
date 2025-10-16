@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
+    "preview": "next build --turbopack && npx serve@latest out -l 3000 --ssl-cert ./certificates/localhost.pem --ssl-key ./certificates/localhost-key.pem",
     "lint": "eslint"
   },
   "dependencies": {

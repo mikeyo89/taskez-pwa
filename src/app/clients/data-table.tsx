@@ -318,7 +318,7 @@ function ClientRowActions({ client, children }: { client: Client; children: Reac
 
   const handleMembers = () => {
     setMenuOpen(false);
-    router.push(`/clients/${client.id}/members`);
+    router.push(`/clients/members?clientId=${encodeURIComponent(client.id)}`);
   };
 
   return (

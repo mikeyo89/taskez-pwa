@@ -8,23 +8,33 @@ import { useMemberFiltersStore } from '@/stores/member-filters';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 import { MembersTable } from './data-table';
 import { CreateMemberDialog } from './forms';
 
 export default function ClientMembersPage() {
-  const params = useParams<{ clientId?: string }>();
+  return (
+    <Suspense
+      fallback={
+        <div className='flex min-h-[60vh] items-center justify-center'>
+          <Spinner className='h-6 w-6 animate-spin text-muted-foreground' />
+        </div>
+      }
+    >
+      <ClientMembersContent />
+    </Suspense>
+  );
+}
+
+function ClientMembersContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const resetFilters = useMemberFiltersStore((state) => state.reset);
 
-  const clientId = useMemo(() => {
-    const raw = params?.clientId;
-    if (Array.isArray(raw)) return raw[0] ?? '';
-    return raw ?? '';
-  }, [params?.clientId]);
+  const clientId = searchParams.get('clientId') ?? '';
 
   useEffect(() => {
     resetFilters();
