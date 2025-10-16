@@ -36,7 +36,8 @@ const withPWA = withPWAInit({
 });
 
 const config: NextConfig = {
-  output: 'standalone',
+  // output: 'standalone',
+  output: 'export', // for prod build.
   typedRoutes: true,
   images: { unoptimized: true }, // lean runtime; offload heavy transforms later
   async headers() {
