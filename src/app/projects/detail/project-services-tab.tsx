@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,16 +28,8 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { ChevronsUpDown, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
-import {
-  cloneElement,
-  isValidElement,
-  useMemo,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-  type ReactElement
-} from 'react';
+import { ChevronsUpDown, Loader2, MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -53,6 +46,7 @@ type ProjectServicesTabProps = {
   services: ProjectServiceWithChildren[];
   serviceLookup: Map<string, string>;
   loading?: boolean;
+  onSelect: (service: ProjectServiceWithChildren) => void;
   onModify: (service: ProjectServiceWithChildren) => void;
   onDelete: (service: ProjectServiceWithChildren) => void;
 };
@@ -61,6 +55,7 @@ export function ProjectServicesTab({
   services,
   serviceLookup,
   loading = false,
+  onSelect,
   onModify,
   onDelete
 }: ProjectServicesTabProps) {
@@ -117,9 +112,21 @@ export function ProjectServicesTab({
           return a === b ? 0 : a > b ? 1 : -1;
         },
         meta: { className: 'text-right align-middle' }
+      },
+      {
+        id: 'actions',
+        header: () => <span className='sr-only'>Actions</span>,
+        cell: ({ row }) => (
+          <ProjectServiceActions
+            service={row.original}
+            onModify={onModify}
+            onDelete={onDelete}
+          />
+        ),
+        meta: { className: 'w-0 text-right align-middle' }
       }
     ];
-  }, [serviceLookup]);
+  }, [serviceLookup, onModify, onDelete]);
 
   const table = useReactTable({
     data: services,
@@ -197,26 +204,31 @@ export function ProjectServicesTab({
             </TableRow>
           ) : rows.length ? (
             rows.map((row) => (
-              <ProjectServiceRowActions
+              <TableRow
                 key={row.id}
-                service={row.original}
-                onModify={onModify}
-                onDelete={onDelete}
+                className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+                onClick={() => onSelect(row.original)}
+                role='button'
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(row.original);
+                  }
+                }}
               >
-                <TableRow className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        'py-3 text-sm align-top',
-                        cell.column.columnDef.meta?.className
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </ProjectServiceRowActions>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      'py-3 text-sm align-top',
+                      cell.column.columnDef.meta?.className
+                    )}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
             ))
           ) : (
             <TableRow>
@@ -234,41 +246,16 @@ export function ProjectServicesTab({
   );
 }
 
-function ProjectServiceRowActions({
+function ProjectServiceActions({
   service,
   onModify,
-  onDelete,
-  children
+  onDelete
 }: {
   service: ProjectServiceWithChildren;
   onModify: (service: ProjectServiceWithChildren) => void;
   onDelete: (service: ProjectServiceWithChildren) => void;
-  children: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
-
-  let triggerChild: ReactElement = children;
-  if (isValidElement(children)) {
-    const existingOnClick = (children.props as { onClick?: (event: MouseEvent) => void }).onClick;
-    triggerChild = cloneElement(children, {
-      onClick: (event: MouseEvent) => {
-        existingOnClick?.(event);
-        setOpen(true);
-      },
-      role: 'button',
-      tabIndex: 0,
-      onKeyDown: (event: KeyboardEvent) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          setOpen(true);
-        }
-      },
-      className: cn(
-        (children.props as { className?: string }).className ?? '',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-      )
-    } as React.HTMLAttributes<HTMLElement>);
-  }
 
   const handleModify = () => {
     setOpen(false);
@@ -284,7 +271,21 @@ function ProjectServiceRowActions({
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>{triggerChild}</DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon'
+          className='h-8 w-8 rounded-full text-muted-foreground hover:text-foreground'
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <MoreHorizontal className='h-4 w-4' />
+          <span className='sr-only'>Open service actions</span>
+        </Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-44'>
         <DropdownMenuItem onClick={handlePrint} className='gap-2'>
           <Printer className='h-4 w-4' />
