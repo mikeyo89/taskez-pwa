@@ -1,10 +1,16 @@
 'use client';
 
 import { Fragment, type ReactNode } from 'react';
-import { ArrowLeft, CalendarDays } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
@@ -41,6 +47,7 @@ type ProjectServiceDetailPanelProps = {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onPrint?: () => void;
 };
 
 export function ProjectServiceDetailPanel({
@@ -50,7 +57,8 @@ export function ProjectServiceDetailPanel({
   loading = false,
   onClose,
   onEdit,
-  onDelete
+  onDelete,
+  onPrint
 }: ProjectServiceDetailPanelProps) {
   return (
     <motion.aside
@@ -75,21 +83,56 @@ export function ProjectServiceDetailPanel({
             <ArrowLeft className='h-4 w-4' />
             Back to services
           </Button>
-          <div className='flex items-center gap-2'>
-            <Button type='button' variant='outline' size='sm' onClick={onEdit} disabled={!service}>
-              Edit service
-            </Button>
-            <Button
-              type='button'
-              variant='outline'
-              size='sm'
-              className='border-destructive text-destructive hover:bg-destructive/10'
-              onClick={onDelete}
-              disabled={!service}
-            >
-              Delete
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon-sm'
+                className='h-8 w-8'
+                aria-label='Service actions'
+                disabled={!service}
+              >
+                <MoreHorizontal className='h-4 w-4' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end' sideOffset={8} className='w-44'>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  if (!service) return;
+                  onPrint?.();
+                }}
+                disabled={!service}
+              >
+                <Printer className='h-4 w-4' />
+                Print
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  if (!service) return;
+                  onEdit();
+                }}
+                disabled={!service}
+              >
+                <Pencil className='h-4 w-4' />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant='destructive'
+                onSelect={(event) => {
+                  event.preventDefault();
+                  if (!service) return;
+                  onDelete();
+                }}
+                disabled={!service}
+              >
+                <Trash2 className='h-4 w-4' />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
         <div className='flex-1 overflow-y-auto px-6 py-6'>

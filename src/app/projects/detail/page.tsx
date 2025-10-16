@@ -175,7 +175,11 @@ function ProjectDetailContent() {
             {project?.title ?? 'Loading project…'}
           </h1>
           <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
-            {project?.description && <span>{project.description}</span>}
+            {project?.description && (
+              <span className='block max-w-full overflow-hidden text-ellipsis whitespace-nowrap sm:inline sm:max-w-none sm:overflow-visible sm:text-clip sm:whitespace-normal'>
+                {project.description}
+              </span>
+            )}
             {typeof project?.budget === 'number' && (
               <span>Budget: {currencyFormatter.format(project.budget)}</span>
             )}

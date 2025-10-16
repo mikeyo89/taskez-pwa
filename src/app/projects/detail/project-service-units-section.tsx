@@ -554,7 +554,7 @@ function ProjectServiceUnitDrawer({
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)'
             }}
           >
-            <div className='flex justify-between gap-3'>
+            <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3'>
               <SheetClose asChild>
                 <Button
                   type='button'
