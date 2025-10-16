@@ -1,6 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Sheet,
   SheetContent,
@@ -10,15 +13,19 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
-import { ACCENT_PRESETS } from '@/lib/appearance';
+import { ACCENT_PRESETS, type AccentKey, type AccentPreset } from '@/lib/appearance';
+import type { Profile } from '@/lib/models';
 import { cn } from '@/lib/utils';
+import { useProfile, useProfileUpdater } from '@/lib/hooks/useProfile';
 import { useAppearanceStore } from '@/stores/appearance';
 import {
+  ArrowLeft,
   BarChart2,
   Bell,
   Download,
   LogOut,
   Moon,
+  Pencil,
   Palette,
   Settings,
   Sun,
@@ -27,7 +34,7 @@ import {
   X
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import MobileAppBar from './mobile-app-bar';
 
 type BeforeInstallPromptEvent = Event & {
@@ -258,14 +265,148 @@ const QUICK_ACTIONS: QuickAction[] = [
   // { id: 'support', label: 'Support', description: 'Get help from the Taskez team', Icon: LifeBuoy }
 ];
 
+type DrawerView = 'home' | 'profile';
+
+type ProfileFormState = {
+  company_name: string;
+  preferred_name: string;
+  preferred_email: string;
+  preferred_phone: string;
+  preferred_color: AccentKey;
+};
+
+function createEmptyProfile(accent: AccentKey): ProfileFormState {
+  return {
+    company_name: '',
+    preferred_name: '',
+    preferred_email: '',
+    preferred_phone: '',
+    preferred_color: accent
+  };
+}
+
 function ProfileDrawer() {
   const accent = useAppearanceStore((state) => state.accent);
   const setAccent = useAppearanceStore((state) => state.setAccent);
+  const hydrated = useAppearanceStore((state) => state.hydrated);
+  const { profile, loading: profileLoading } = useProfile();
+  const { saveProfile } = useProfileUpdater();
 
   const accentPresets = useMemo(() => ACCENT_PRESETS, []);
+  const [open, setOpen] = useState(false);
+  const [activeView, setActiveView] = useState<DrawerView>('home');
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [accentUpdating, setAccentUpdating] = useState(false);
+  const [formState, setFormState] = useState<ProfileFormState>(() => createEmptyProfile(accent));
+
+  const resetForm = useCallback(() => {
+    if (profile) {
+      setFormState({
+        company_name: profile.company_name,
+        preferred_name: profile.preferred_name,
+        preferred_email: profile.preferred_email,
+        preferred_phone: profile.preferred_phone,
+        preferred_color: profile.preferred_color
+      });
+    } else {
+      setFormState(createEmptyProfile(accent));
+    }
+  }, [profile, accent]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      resetForm();
+    }
+  }, [resetForm, isEditing]);
+
+  useEffect(() => {
+    if (!open) {
+      setActiveView('home');
+      setIsEditing(false);
+      setError(null);
+      resetForm();
+    }
+  }, [open, resetForm]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+    if (profile?.preferred_color && profile.preferred_color !== accent) {
+      setAccent(profile.preferred_color);
+    }
+  }, [accent, hydrated, profile?.preferred_color, setAccent]);
+
+  const handleFormChange = useCallback(<K extends keyof ProfileFormState>(
+    key: K,
+    value: ProfileFormState[K]
+  ) => {
+    setFormState((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleNavigateProfile = useCallback(() => {
+    setActiveView('profile');
+  }, []);
+
+  const handleStartEdit = useCallback(() => {
+    setError(null);
+    setIsEditing(true);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false);
+    setError(null);
+    resetForm();
+  }, [resetForm]);
+
+  const handleBack = useCallback(() => {
+    if (isEditing) {
+      setIsEditing(false);
+      setError(null);
+      resetForm();
+    }
+    setActiveView('home');
+  }, [isEditing, resetForm]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await saveProfile(formState);
+      setAccent(updated.preferred_color);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      setError(err instanceof Error ? err.message : 'Unable to save profile');
+    } finally {
+      setSaving(false);
+    }
+  }, [formState, saveProfile, setAccent]);
+
+  const handleAccentSelect = useCallback(
+    async (nextAccent: AccentKey) => {
+      if (nextAccent === accent && profile?.preferred_color === nextAccent) {
+        return;
+      }
+      const previousAccent = accent;
+      setAccent(nextAccent);
+      setAccentUpdating(true);
+      try {
+        await saveProfile({ preferred_color: nextAccent });
+      } catch (err) {
+        console.error('Failed to update preferred color', err);
+        setAccent(previousAccent);
+      } finally {
+        setAccentUpdating(false);
+      }
+    },
+    [accent, profile?.preferred_color, saveProfile, setAccent]
+  );
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant='ghost'
@@ -287,100 +428,389 @@ function ProfileDrawer() {
           backgroundColor: 'color-mix(in srgb, var(--background) 96%, transparent)'
         }}
       >
-        <SheetHeader className='p-4 pb-2 text-left'>
-          <SheetTitle className='text-lg'>Account</SheetTitle>
-          <SheetDescription>Manage your profile and personalize Taskez.</SheetDescription>
-        </SheetHeader>
-
-        <div className='flex-1 overflow-y-auto px-4 pb-6'>
-          <section>
-            <h2 className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>
-              Quick actions
-            </h2>
-            <div className='mt-3 flex flex-col gap-2'>
-              {QUICK_ACTIONS.map(({ id, label, description, Icon }) => (
+        <div className='flex h-full flex-col'>
+          {activeView === 'home' ? (
+            <SheetHeader className='p-4 pb-2 text-left'>
+              <SheetTitle className='text-lg'>Account</SheetTitle>
+              <SheetDescription>Manage your profile and personalize Taskez.</SheetDescription>
+            </SheetHeader>
+          ) : (
+            <div className='p-4 pb-2'>
+              <div className='flex items-center justify-between gap-2'>
                 <button
-                  key={id}
                   type='button'
-                  onClick={() => {}}
-                  className='flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition'
-                  style={{
-                    borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
-                    backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
-                  }}
+                  onClick={handleBack}
+                  className='rounded-full border border-border/70 p-2 text-muted-foreground transition hover:border-border hover:text-foreground disabled:opacity-60'
+                  aria-label='Back to account overview'
+                  disabled={saving}
                 >
-                  <span
-                    className='flex h-9 w-9 items-center justify-center rounded-full text-accent-foreground'
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)'
-                    }}
-                  >
-                    <Icon className='h-4 w-4' aria-hidden />
-                  </span>
-                  <div className='flex-1'>
-                    <p className='text-sm font-medium'>{label}</p>
-                    <p className='text-xs text-muted-foreground'>{description}</p>
-                  </div>
+                  <ArrowLeft className='h-4 w-4' aria-hidden />
                 </button>
-              ))}
-            </div>
-          </section>
-
-          <section className='mt-6'>
-            <div className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
-              <Palette className='h-4 w-4' aria-hidden />
-              Theme accents
-            </div>
-            <p className='mt-1 text-xs text-muted-foreground'>
-              Choose a highlight color to match your workspace mood.
-            </p>
-            <div className='mt-4 grid grid-cols-2 gap-2'>
-              {accentPresets.map((preset) => {
-                const selected = accent === preset.id;
-                return (
-                  <button
-                    key={preset.id}
+                {!isEditing && (
+                  <Button
                     type='button'
-                    onClick={() => setAccent(preset.id)}
-                    className={cn(
-                      'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition',
-                      selected ? 'border-primary text-primary-foreground' : 'border-border'
-                    )}
+                    variant='ghost'
+                    size='icon'
+                    className='rounded-full border border-border/70 text-muted-foreground transition hover:border-border hover:text-foreground'
                     style={{
-                      backgroundColor: selected
-                        ? 'color-mix(in srgb, var(--primary) 16%, transparent)'
-                        : 'color-mix(in srgb, var(--background) 94%, transparent)',
-                      borderColor: selected
-                        ? 'color-mix(in srgb, var(--primary) 50%, transparent)'
-                        : 'color-mix(in srgb, var(--border) 70%, transparent)'
+                      backgroundColor: 'color-mix(in srgb, var(--background) 90%, transparent)'
                     }}
+                    onClick={handleStartEdit}
+                    disabled={profileLoading}
+                    aria-label='Edit profile details'
                   >
-                    <span
-                      className='h-5 w-5 rounded-full border'
-                      style={{
-                        backgroundColor: preset.swatch,
-                        borderColor: 'color-mix(in srgb, currentColor 35%, transparent)'
-                      }}
-                    />
-                    <span>{preset.label}</span>
-                  </button>
-                );
-              })}
+                    <Pencil className='h-4 w-4' aria-hidden />
+                  </Button>
+                )}
+              </div>
+              <div className='mt-4 text-left'>
+                <SheetTitle className='text-lg leading-tight'>Profile</SheetTitle>
+                <SheetDescription className='mt-1'>
+                  Keep your workspace details up to date.
+                </SheetDescription>
+              </div>
             </div>
-          </section>
-        </div>
+          )}
 
-        <div className='px-4 pb-4'>
-          <Button
-            variant='destructive'
-            className='w-full justify-center gap-2 rounded-2xl'
-            onClick={() => {}}
-          >
-            <LogOut className='h-4 w-4' aria-hidden />
-            Sign out
-          </Button>
+          <div className='relative flex-1 overflow-hidden'>
+            <div
+              className='grid h-full w-[200%] grid-cols-2 transition-transform duration-500 ease-in-out'
+              style={{ transform: activeView === 'profile' ? 'translateX(-50%)' : 'translateX(0%)' }}
+            >
+              <HomePanel
+                accent={accent}
+                accentPresets={accentPresets}
+                onAccentSelect={handleAccentSelect}
+                onNavigateProfile={handleNavigateProfile}
+                accentUpdating={accentUpdating}
+              />
+              <ProfilePanel
+                accentPresets={accentPresets}
+                formState={formState}
+                onFormChange={handleFormChange}
+                isEditing={isEditing}
+                onCancelEdit={handleCancelEdit}
+                onSave={handleSave}
+                saving={saving}
+                error={error}
+                profile={profile}
+                loading={profileLoading}
+              />
+            </div>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+type HomePanelProps = {
+  accent: AccentKey;
+  accentPresets: AccentPreset[];
+  onAccentSelect: (accent: AccentKey) => void | Promise<void>;
+  onNavigateProfile: () => void;
+  accentUpdating: boolean;
+};
+
+function HomePanel({ accent, accentPresets, onAccentSelect, onNavigateProfile, accentUpdating }: HomePanelProps) {
+  return (
+    <div className='flex h-full flex-col overflow-y-auto px-4 pb-6 pt-2'>
+      <section>
+        <h2 className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>Quick actions</h2>
+        <div className='mt-3 flex flex-col gap-2'>
+          {QUICK_ACTIONS.map(({ id, label, description, Icon }) => {
+            const isProfile = id === 'profile';
+            return (
+              <button
+                key={id}
+                type='button'
+                onClick={isProfile ? onNavigateProfile : undefined}
+                className='flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition hover:border-border hover:shadow-sm'
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
+                }}
+              >
+                <span
+                  className='flex h-9 w-9 items-center justify-center rounded-full text-accent-foreground'
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)'
+                  }}
+                >
+                  <Icon className='h-4 w-4' aria-hidden />
+                </span>
+                <div className='flex-1'>
+                  <p className='text-sm font-medium'>{label}</p>
+                  <p className='text-xs text-muted-foreground'>{description}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className='mt-6'>
+        <div className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
+          <Palette className='h-4 w-4' aria-hidden />
+          Theme accents
+        </div>
+        <p className='mt-1 text-xs text-muted-foreground'>
+          Choose a highlight color to match your workspace mood.
+        </p>
+        <div className='mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3'>
+          {accentPresets.map((preset) => {
+            const selected = accent === preset.id;
+            return (
+              <AccentOptionButton
+                key={preset.id}
+                preset={preset}
+                selected={selected}
+                onSelect={onAccentSelect}
+                disabled={accentUpdating && !selected}
+                trailing={
+                  accentUpdating && selected ? (
+                    <Spinner className='h-4 w-4 text-current' aria-hidden />
+                  ) : null
+                }
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <div className='mt-auto pt-6'>
+        <Button
+          variant='destructive'
+          className='w-full justify-center gap-2 rounded-2xl'
+          onClick={() => {}}
+        >
+          <LogOut className='h-4 w-4' aria-hidden />
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+type AccentOptionButtonProps = {
+  preset: AccentPreset;
+  selected: boolean;
+  onSelect: (accent: AccentKey) => void | Promise<void>;
+  disabled?: boolean;
+  trailing?: ReactNode;
+};
+
+function AccentOptionButton({ preset, selected, onSelect, disabled, trailing }: AccentOptionButtonProps) {
+  return (
+    <button
+      type='button'
+      onClick={() => onSelect(preset.id)}
+      className={cn(
+        'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition',
+        selected ? 'border-primary text-primary-foreground' : 'border-border'
+      )}
+      style={{
+        backgroundColor: selected
+          ? 'color-mix(in srgb, var(--primary) 16%, transparent)'
+          : 'color-mix(in srgb, var(--background) 94%, transparent)',
+        borderColor: selected
+          ? 'color-mix(in srgb, var(--primary) 50%, transparent)'
+          : 'color-mix(in srgb, var(--border) 70%, transparent)'
+      }}
+      disabled={disabled}
+      aria-pressed={selected}
+    >
+      <span
+        className='h-5 w-5 rounded-full border'
+        style={{
+          backgroundColor: preset.swatch,
+          borderColor: 'color-mix(in srgb, currentColor 35%, transparent)'
+        }}
+      />
+      <span className='flex-1 text-left'>{preset.label}</span>
+      {trailing}
+    </button>
+  );
+}
+
+type ProfilePanelProps = {
+  accentPresets: AccentPreset[];
+  formState: ProfileFormState;
+  onFormChange: <K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]) => void;
+  isEditing: boolean;
+  onCancelEdit: () => void;
+  onSave: () => void;
+  saving: boolean;
+  error: string | null;
+  profile: Profile | null;
+  loading: boolean;
+};
+
+function ProfilePanel({
+  accentPresets,
+  formState,
+  onFormChange,
+  isEditing,
+  onCancelEdit,
+  onSave,
+  saving,
+  error,
+  profile,
+  loading
+}: ProfilePanelProps) {
+  const selectedColor = profile?.preferred_color ?? formState.preferred_color;
+  const colorPreset = accentPresets.find((preset) => preset.id === selectedColor);
+
+  return (
+    <div className='flex h-full flex-col overflow-hidden px-4 pb-6 pt-2'>
+      <div className='mt-4 flex-1 overflow-y-auto'>
+        {loading ? (
+          <div className='flex h-full items-center justify-center'>
+            <Spinner className='h-6 w-6 text-muted-foreground' />
+          </div>
+        ) : isEditing ? (
+          <form className='flex flex-col gap-4 pb-2' onSubmit={(event) => event.preventDefault()}>
+            <div className='space-y-1'>
+              <Label htmlFor='profile-company'>Company name</Label>
+              <Input
+                id='profile-company'
+                value={formState.company_name}
+                onChange={(event) => onFormChange('company_name', event.target.value)}
+                placeholder='Taskez Inc.'
+                autoComplete='organization'
+              />
+            </div>
+            <div className='space-y-1'>
+              <Label htmlFor='profile-preferred-name'>Preferred name</Label>
+              <Input
+                id='profile-preferred-name'
+                value={formState.preferred_name}
+                onChange={(event) => onFormChange('preferred_name', event.target.value)}
+                placeholder='Jordan'
+                autoComplete='name'
+              />
+            </div>
+            <div className='space-y-1'>
+              <Label htmlFor='profile-email'>Preferred email</Label>
+              <Input
+                id='profile-email'
+                type='email'
+                value={formState.preferred_email}
+                onChange={(event) => onFormChange('preferred_email', event.target.value)}
+                placeholder='jordan@taskez.com'
+                autoComplete='email'
+              />
+            </div>
+            <div className='space-y-1'>
+              <Label htmlFor='profile-phone'>Preferred phone</Label>
+              <Input
+                id='profile-phone'
+                value={formState.preferred_phone}
+                onChange={(event) => onFormChange('preferred_phone', event.target.value)}
+                placeholder='(555) 123-4567'
+                autoComplete='tel'
+              />
+            </div>
+            <div>
+              <p className='text-sm font-medium'>Preferred color</p>
+              <p className='text-xs text-muted-foreground'>Used to highlight interface accents.</p>
+              <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3'>
+                {accentPresets.map((preset) => {
+                  const selected = formState.preferred_color === preset.id;
+                  return (
+                    <AccentOptionButton
+                      key={preset.id}
+                      preset={preset}
+                      selected={selected}
+                      onSelect={(accentId) => onFormChange('preferred_color', accentId)}
+                      trailing={
+                        selected ? (
+                          <span className='text-xs uppercase tracking-wide text-muted-foreground'>Selected</span>
+                        ) : null
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className='flex flex-col gap-5 pb-2'>
+            <ProfileField label='Company name'>
+              {profile?.company_name ? (
+                profile.company_name
+              ) : (
+                <span className='text-muted-foreground'>Add your company name</span>
+              )}
+            </ProfileField>
+            <ProfileField label='Preferred name'>
+              {profile?.preferred_name ? (
+                profile.preferred_name
+              ) : (
+                <span className='text-muted-foreground'>Share what you like to be called</span>
+              )}
+            </ProfileField>
+            <ProfileField label='Preferred email'>
+              {profile?.preferred_email ? (
+                <a href={`mailto:${profile.preferred_email}`} className='underline-offset-4 hover:underline'>
+                  {profile.preferred_email}
+                </a>
+              ) : (
+                <span className='text-muted-foreground'>Add an email for notifications</span>
+              )}
+            </ProfileField>
+            <ProfileField label='Preferred phone'>
+              {profile?.preferred_phone ? (
+                profile.preferred_phone
+              ) : (
+                <span className='text-muted-foreground'>Add a phone number</span>
+              )}
+            </ProfileField>
+            <ProfileField label='Preferred color'>
+              <div className='flex items-center gap-3'>
+                <span
+                  className='h-5 w-5 rounded-full border'
+                  style={{
+                    backgroundColor: colorPreset?.swatch ?? 'var(--accent)',
+                    borderColor: 'color-mix(in srgb, currentColor 35%, transparent)'
+                  }}
+                />
+                <span>{colorPreset?.label ?? 'Match workspace accent'}</span>
+              </div>
+            </ProfileField>
+          </div>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className='mt-4 flex flex-col gap-2'>
+          {error ? <p className='text-sm text-destructive'>{error}</p> : null}
+          <div className='flex gap-2'>
+            <Button variant='outline' className='flex-1' onClick={onCancelEdit} disabled={saving}>
+              Cancel
+            </Button>
+            <Button className='flex-1' onClick={onSave} disabled={saving}>
+              {saving ? (
+                <span className='flex items-center justify-center gap-2'>
+                  <Spinner className='h-4 w-4 text-primary-foreground' />
+                  Saving
+                </span>
+              ) : (
+                'Save changes'
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProfileField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <p className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>{label}</p>
+      <div className='mt-1 text-sm text-foreground'>{children}</div>
+    </div>
   );
 }

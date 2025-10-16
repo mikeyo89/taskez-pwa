@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { ACCENT_KEYS } from './appearance';
+
 export const ClientSchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
@@ -104,3 +106,15 @@ export const ProjectServiceExtraSchema = z.object({
   updated_at: z.iso.datetime()
 });
 export type ProjectServiceExtra = z.infer<typeof ProjectServiceExtraSchema>;
+
+export const ProfileSchema = z.object({
+  id: z.string(),
+  company_name: z.string().max(120).optional().default(''),
+  preferred_name: z.string().max(120).optional().default(''),
+  preferred_email: z.union([z.string().email(), z.literal('')]).optional().default(''),
+  preferred_phone: z.string().max(60).optional().default(''),
+  preferred_color: z.enum(ACCENT_KEYS),
+  created_at: z.iso.datetime(),
+  updated_at: z.iso.datetime()
+});
+export type Profile = z.infer<typeof ProfileSchema>;
