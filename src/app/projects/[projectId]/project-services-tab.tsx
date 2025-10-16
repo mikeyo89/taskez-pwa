@@ -1,26 +1,6 @@
 'use client';
 
 import {
-  cloneElement,
-  isValidElement,
-  useMemo,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-  type ReactElement
-} from 'react';
-import {
-  ColumnDef,
-  SortingState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
-} from '@tanstack/react-table';
-import { ChevronsUpDown, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -35,8 +15,28 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
+import { cn } from '@/lib/utils';
+import {
+  ColumnDef,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable
+} from '@tanstack/react-table';
+import { ChevronsUpDown, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
+import {
+  cloneElement,
+  isValidElement,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactElement
+} from 'react';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -64,7 +64,9 @@ export function ProjectServicesTab({
   onModify,
   onDelete
 }: ProjectServicesTabProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'est_completion_date', desc: false }]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'est_completion_date', desc: false }
+  ]);
   const [globalFilter, setGlobalFilter] = useState('');
 
   const columns = useMemo<ColumnDef<ProjectServiceWithChildren>[]>(() => {
@@ -79,7 +81,9 @@ export function ProjectServicesTab({
           const serviceName = serviceLookup.get(entity.service_id) ?? 'Unknown service';
           return (
             <div className='flex flex-col gap-1'>
-              <span className='text-sm font-semibold leading-tight text-foreground'>{serviceName}</span>
+              <span className='text-sm font-semibold leading-tight text-foreground'>
+                {serviceName}
+              </span>
               <span className='text-xs text-muted-foreground'>
                 Budget {formatBudget(entity.budget_amount, entity.budget_type)} ·{' '}
                 {entity.units.length} unit{entity.units.length === 1 ? '' : 's'}
@@ -260,10 +264,10 @@ function ProjectServiceRowActions({
         }
       },
       className: cn(
-        children.props.className ?? '',
+        (children.props as { className?: string }).className ?? '',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
       )
-    });
+    } as React.HTMLAttributes<HTMLElement>);
   }
 
   const handleModify = () => {
