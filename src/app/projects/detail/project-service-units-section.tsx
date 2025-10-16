@@ -554,14 +554,14 @@ function ProjectServiceUnitDrawer({
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)'
             }}
           >
-            <div className='flex justify-between gap-3'>
+            <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 md:flex-nowrap'>
               <SheetClose asChild>
                 <Button
                   type='button'
                   variant='outline'
                   className={cn(
                     'w-full border-border/70 text-sm font-medium shadow-sm transition-transform hover:-translate-y-0.5',
-                    'sm:w-auto'
+                    'sm:w-auto sm:min-w-[120px]'
                   )}
                   disabled={pending}
                 >
@@ -572,7 +572,7 @@ function ProjectServiceUnitDrawer({
                 type='submit'
                 className={cn(
                   'w-full bg-accent text-sm font-semibold text-accent-foreground shadow-md transition-transform hover:-translate-y-0.5 hover:bg-accent/90 focus-visible:ring-accent/50',
-                  'sm:w-auto'
+                  'sm:w-auto sm:min-w-[140px]'
                 )}
                 disabled={pending}
               >
