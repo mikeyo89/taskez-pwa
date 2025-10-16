@@ -1,5 +1,7 @@
 import withPWAInit from '@ducanh2912/next-pwa';
 import type { NextConfig } from 'next';
+const IS_PROD = process.env.IS_PROD === 'true';
+const repo = 'taskez-pwa';
 
 const withPWA = withPWAInit({
   dest: 'public',
@@ -78,8 +80,8 @@ const config: NextConfig = {
       }
     ];
   },
-  // basePath: isProd ? `/${repo}` : '',
-  // assetPrefix: isProd ? `/${repo}/` : '',
+  basePath: IS_PROD ? `/${repo}` : '',
+  assetPrefix: IS_PROD ? `/${repo}/` : '',
   trailingSlash: true // avoids 404s for "folder as page"
 };
 
