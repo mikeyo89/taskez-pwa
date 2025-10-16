@@ -62,17 +62,17 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
         cell: ({ row }) => {
           const service = row.original;
           return (
-            <div className='flex flex-col gap-1'>
+            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
               <Tooltip content={service.name} side='top'>
                 <span
-                  className='text-sm font-medium text-foreground block max-w-[13rem] truncate'
+                  className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground'
                   aria-label={service.name}
                 >
                   {service.name}
                 </span>
               </Tooltip>
               {service.description && (
-                <span className='text-xs text-muted-foreground line-clamp-2'>
+                <span className='text-xs text-muted-foreground line-clamp-3 break-words'>
                   {service.description}
                 </span>
               )}
