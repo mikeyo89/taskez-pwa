@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { subscribeUser, unsubscribeUser, sendNotification } from './actions';
+import { useEffect, useState } from 'react';
+import { sendNotification, subscribeUser, unsubscribeUser } from './actions';
 import HomeScreen from './ui/home-screen';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -30,8 +30,8 @@ export function PushNotificationManager() {
   }, []);
 
   async function registerServiceWorker() {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
+    const registration = await navigator.serviceWorker.register('/taskez-pwa/sw.js', {
+      scope: '/taskez-pwa/',
       updateViaCache: 'none'
     });
     const sub = await registration.pushManager.getSubscription();
