@@ -30,8 +30,8 @@ export function PushNotificationManager() {
   }, []);
 
   async function registerServiceWorker() {
-    const registration = await navigator.serviceWorker.register('/taskez-pwa/sw.js', {
-      scope: IS_PROD ? '' : '/taskez-pwa/',
+    const registration = await navigator.serviceWorker.register('sw.js', {
+      scope: '/',
       updateViaCache: 'none'
     });
     const sub = await registration.pushManager.getSubscription();
