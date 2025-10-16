@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 import AppChrome from './ui/app-chrome';
+const IS_PROD = process.env.IS_PROD === 'true';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Taskez PM',
-  manifest: '/manifest.json'
+  manifest: IS_PROD ? 'app.webmanifest' : '/manifest.json'
 };
 
 export const viewport: Viewport = {
