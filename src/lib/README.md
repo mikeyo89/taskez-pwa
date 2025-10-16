@@ -29,3 +29,7 @@ Defines a unit of work towards the completition of a service, in terms of $ or %
 ### ProjectServiceExtra
 
 Nearly identical to a ProjectServiceUnit model, except these are always dollar amount adhoc extra units of work requested by the client.
+
+### Profile
+
+Stores personalization preferences for the current Taskez user, including their contact details and preferred accent color used throughout the UI.

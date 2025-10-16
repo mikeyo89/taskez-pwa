@@ -1,4 +1,6 @@
-export type AccentKey = 'sky' | 'amber' | 'violet' | 'emerald' | 'rose' | 'slate';
+export const ACCENT_KEYS = ['sky', 'amber', 'violet', 'emerald', 'rose', 'slate'] as const;
+
+export type AccentKey = (typeof ACCENT_KEYS)[number];
 
 export type AccentPreset = {
   id: AccentKey;
