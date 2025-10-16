@@ -69,19 +69,18 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
         ),
         cell: ({ row }) => {
           const client = row.original;
-          const shouldTruncate = client.name && client.name.length > 25;
           return (
-            <div className='flex max-w-[20rem] flex-col gap-1'>
+            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
               <Tooltip content={client.name} side='top'>
                 <span
-                  className='text-sm font-medium text-foreground block max-w-[13rem] truncate'
+                  className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground'
                   aria-label={client.name}
                 >
                   {client.name}
                 </span>
               </Tooltip>
               {client.description && (
-                <span className='text-xs text-muted-foreground line-clamp-2'>
+                <span className='text-xs text-muted-foreground line-clamp-3 break-words'>
                   {client.description}
                 </span>
               )}

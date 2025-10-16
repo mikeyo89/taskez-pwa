@@ -1,12 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -28,8 +22,8 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { ChevronsUpDown, Loader2, MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ChevronsUpDown, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
+import { useMemo, useState, type MouseEvent } from 'react';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -49,6 +43,7 @@ type ProjectServicesTabProps = {
   onSelect: (service: ProjectServiceWithChildren) => void;
   onModify: (service: ProjectServiceWithChildren) => void;
   onDelete: (service: ProjectServiceWithChildren) => void;
+  onPrint?: (service: ProjectServiceWithChildren) => void;
 };
 
 export function ProjectServicesTab({
@@ -57,7 +52,8 @@ export function ProjectServicesTab({
   loading = false,
   onSelect,
   onModify,
-  onDelete
+  onDelete,
+  onPrint
 }: ProjectServicesTabProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'est_completion_date', desc: false }
@@ -75,8 +71,8 @@ export function ProjectServicesTab({
           const entity = row.original;
           const serviceName = serviceLookup.get(entity.service_id) ?? 'Unknown service';
           return (
-            <div className='flex flex-col gap-1'>
-              <span className='text-sm font-semibold leading-tight text-foreground'>
+            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
+              <span className='line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground'>
                 {serviceName}
               </span>
               <span className='text-xs text-muted-foreground'>
@@ -121,12 +117,13 @@ export function ProjectServicesTab({
             service={row.original}
             onModify={onModify}
             onDelete={onDelete}
+            onPrint={onPrint}
           />
         ),
         meta: { className: 'w-0 text-right align-middle' }
       }
     ];
-  }, [serviceLookup, onModify, onDelete]);
+  }, [serviceLookup, onModify, onDelete, onPrint]);
 
   const table = useReactTable({
     data: services,
@@ -249,61 +246,65 @@ export function ProjectServicesTab({
 function ProjectServiceActions({
   service,
   onModify,
-  onDelete
+  onDelete,
+  onPrint
 }: {
   service: ProjectServiceWithChildren;
   onModify: (service: ProjectServiceWithChildren) => void;
   onDelete: (service: ProjectServiceWithChildren) => void;
+  onPrint?: (service: ProjectServiceWithChildren) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const handlePrint = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onPrint?.(service);
+  };
 
-  const handleModify = () => {
-    setOpen(false);
+  const handleModify = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     onModify(service);
   };
 
-  const handleDelete = () => {
-    setOpen(false);
+  const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     onDelete(service);
   };
 
-  const handlePrint = () => setOpen(false);
-
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type='button'
-          variant='ghost'
-          size='icon'
-          className='h-8 w-8 rounded-full text-muted-foreground hover:text-foreground'
-          onClick={(event) => {
-            event.stopPropagation();
-            setOpen(true);
-          }}
-        >
-          <MoreHorizontal className='h-4 w-4' />
-          <span className='sr-only'>Open service actions</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-44'>
-        <DropdownMenuItem onClick={handlePrint} className='gap-2'>
-          <Printer className='h-4 w-4' />
-          Print
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleModify} className='gap-2'>
-          <Pencil className='h-4 w-4' />
-          Modify
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className='gap-2 text-destructive focus:text-destructive'
-        >
-          <Trash2 className='h-4 w-4' />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className='flex justify-end gap-1 sm:gap-2'>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon-sm'
+        className='text-muted-foreground hover:text-foreground'
+        onClick={handlePrint}
+        aria-label='Print service'
+        title='Print service'
+      >
+        <Printer className='h-4 w-4' />
+      </Button>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon-sm'
+        className='text-muted-foreground hover:text-foreground'
+        onClick={handleModify}
+        aria-label='Edit service'
+        title='Edit service'
+      >
+        <Pencil className='h-4 w-4' />
+      </Button>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon-sm'
+        className='text-destructive hover:text-destructive'
+        onClick={handleDelete}
+        aria-label='Delete service'
+        title='Delete service'
+      >
+        <Trash2 className='h-4 w-4' />
+      </Button>
+    </div>
   );
 }
 

@@ -139,6 +139,10 @@ function ProjectDetailContent() {
     setDeleteOpen(true);
   };
 
+  const handlePrint = (service: ProjectServiceWithChildren) => {
+    void service;
+  };
+
   const handleServiceSelect = (service: ProjectServiceWithChildren) => {
     setActiveServiceId(service.id);
   };
@@ -213,6 +217,7 @@ function ProjectDetailContent() {
               onSelect={handleServiceSelect}
               onModify={handleModify}
               onDelete={handleDelete}
+              onPrint={handlePrint}
             />
           </TabsContent>
           <TabsContent value='events'>
@@ -268,6 +273,11 @@ function ProjectDetailContent() {
             onDelete={() => {
               if (activeService) {
                 handleDelete(activeService);
+              }
+            }}
+            onPrint={() => {
+              if (activeService) {
+                handlePrint(activeService);
               }
             }}
             loading={!activeService}

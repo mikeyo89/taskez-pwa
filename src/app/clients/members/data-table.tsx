@@ -73,14 +73,14 @@ export function MembersTable({ data, loading = false }: MembersTableProps) {
           const member = row.original;
           const fullName = `${member.first_name} ${member.last_name}`;
           return (
-            <div className='flex flex-col gap-1'>
+            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
               <Tooltip content={fullName} side='top'>
-                <span className='block max-w-[12rem] truncate text-sm font-medium text-foreground'>
+                <span className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground'>
                   {fullName}
                 </span>
               </Tooltip>
-              <span className='text-xs text-muted-foreground'>{member.email}</span>
-              <span className='text-xs text-muted-foreground'>{member.phone ?? '-'}</span>
+              <span className='text-xs text-muted-foreground break-all'>{member.email}</span>
+              <span className='text-xs text-muted-foreground break-words'>{member.phone ?? '-'}</span>
             </div>
           );
         },
