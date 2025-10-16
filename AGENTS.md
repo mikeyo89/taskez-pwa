@@ -18,7 +18,7 @@
 
 - Make sure to install any new dependencies by running `pnpm add` before executing tests.
 - After testing has completed, some logs or output should be included in any commits to serve as evidence that tests were executed and succeeded.
-- Always verify linting by running: `pnpm lint`
+- Always verify linting and integrity of the project running: `pnpm build`
 
 ## PR instructions
 

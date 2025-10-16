@@ -35,13 +35,9 @@ const withPWA = withPWAInit({
   }
 });
 
-// const isProd = process.env.NODE_ENV === 'production';
-// const repo = 'your-repo-name'; // needed only for project pages
-
 const config: NextConfig = {
-  // output: 'standalone',
-  output: 'export', // for github pages
-  experimental: { typedRoutes: true },
+  output: 'standalone',
+  typedRoutes: true,
   images: { unoptimized: true }, // lean runtime; offload heavy transforms later
   async headers() {
     return [

@@ -45,6 +45,7 @@ import {
   isValidElement,
   useMemo,
   useState,
+  type HTMLAttributes,
   type KeyboardEvent,
   type MouseEvent,
   type ReactElement
@@ -404,16 +405,16 @@ function ProjectRowActions({
   const router = useRouter();
 
   let child: ReactElement = children;
-  if (isValidElement(children)) {
-    const existingOnClick = (children.props as { onClick?: (event: MouseEvent) => void }).onClick;
+  if (isValidElement<HTMLAttributes<HTMLTableRowElement>>(children)) {
+    const existingOnClick = children.props.onClick;
     child = cloneElement(children, {
-      onClick: (event: MouseEvent) => {
+      onClick: (event: MouseEvent<HTMLTableRowElement>) => {
         existingOnClick?.(event);
         setMenuOpen(true);
       },
       role: 'button',
       tabIndex: 0,
-      onKeyDown: (event: KeyboardEvent) => {
+      onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           setMenuOpen(true);

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
@@ -16,9 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Taskez PM',
-  themeColor: '#0ea5e9',
-  manifest: '/manifest.json',
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover'
+  manifest: '/manifest.json'
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0ea5e9'
 };
 
 export default function RootLayout({

@@ -31,7 +31,7 @@ import {
   useReactTable
 } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Loader2, Pencil, Trash2 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, type HTMLAttributes } from 'react';
 import { toast } from 'sonner';
 import { UpdateServiceDialog } from './form';
 
@@ -253,38 +253,28 @@ function formatDate(input: string) {
   });
 }
 
-function ServiceRowActions({
-  Service,
-  children
-}: {
-  Service: Service;
-  children: React.ReactElement;
-}) {
+function ServiceRowActions({ Service, children }: { Service: Service; children: React.ReactElement }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
 
-  let child;
-  if (React.isValidElement(children)) {
-    const el = children as React.ReactElement<Record<string, unknown>>;
+  let child: React.ReactElement = children;
+  if (React.isValidElement<HTMLAttributes<HTMLTableRowElement>>(children)) {
+    const el = children;
     child = React.cloneElement(el, {
       role: 'button',
       tabIndex: 0,
-      onKeyDown: (event: React.KeyboardEvent) => {
+      onKeyDown: (event: React.KeyboardEvent<HTMLTableRowElement>) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           setMenuOpen(true);
         }
-        if (el.props.onKeyDown) {
-          el.props.onKeyDown(event);
-        }
+        el.props.onKeyDown?.(event);
       },
       className: cn(
         el.props.className,
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
       )
     });
-  } else {
-    child = children;
   }
 
   const openUpdateDialog = () => {
