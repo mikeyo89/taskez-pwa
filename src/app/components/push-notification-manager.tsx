@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { sendNotification, subscribeUser, unsubscribeUser } from '../actions';
-const IS_PROD = process.env.IS_PROD === 'true';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
