@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { ProjectEventsTab } from './project-events-tab';
 import { ProjectServiceDialog } from './project-service-dialog';
 import { ProjectServiceDeleteDialog } from './project-service-delete-dialog';
 import { ProjectServicesTab } from './project-services-tab';
+import { ProjectServiceDetailPanel } from './project-service-detail-panel';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -61,11 +62,32 @@ function ProjectDetailContent() {
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ProjectServiceWithChildren | null>(null);
+  const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
 
   const availableServicesLookup = useMemo(
     () => new Map((allServices ?? []).map((service) => [service.id, service.name])),
     [allServices]
   );
+
+  const activeService = useMemo(() => {
+    if (!activeServiceId) return null;
+    return (servicesQuery.data ?? []).find((service) => service.id === activeServiceId) ?? null;
+  }, [activeServiceId, servicesQuery.data]);
+
+  const activeServiceName = useMemo(() => {
+    if (!activeService) return undefined;
+    return availableServicesLookup.get(activeService.service_id);
+  }, [activeService, availableServicesLookup]);
+
+  useEffect(() => {
+    if (!activeServiceId) return;
+    const services = servicesQuery.data ?? [];
+    if (services.length === 0) return;
+    const exists = services.some((service) => service.id === activeServiceId);
+    if (!exists) {
+      setActiveServiceId(null);
+    }
+  }, [activeServiceId, servicesQuery.data]);
 
   if (!projectId) {
     return (
@@ -109,11 +131,16 @@ function ProjectDetailContent() {
     setSelectedService(service);
     setDialogMode('edit');
     setDialogOpen(true);
+    setActiveServiceId(service.id);
   };
 
   const handleDelete = (service: ProjectServiceWithChildren) => {
     setDeleteTarget(service);
     setDeleteOpen(true);
+  };
+
+  const handleServiceSelect = (service: ProjectServiceWithChildren) => {
+    setActiveServiceId(service.id);
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -148,7 +175,11 @@ function ProjectDetailContent() {
             {project?.title ?? 'Loading project…'}
           </h1>
           <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
-            {project?.description && <span>{project.description}</span>}
+            {project?.description && (
+              <span className='block max-w-full overflow-hidden text-ellipsis whitespace-nowrap sm:inline sm:max-w-none sm:overflow-visible sm:text-clip sm:whitespace-normal'>
+                {project.description}
+              </span>
+            )}
             {typeof project?.budget === 'number' && (
               <span>Budget: {currencyFormatter.format(project.budget)}</span>
             )}
@@ -179,6 +210,7 @@ function ProjectDetailContent() {
               services={servicesQuery.data ?? []}
               serviceLookup={availableServicesLookup}
               loading={servicesQuery.isLoading || servicesQuery.isFetching}
+              onSelect={handleServiceSelect}
               onModify={handleModify}
               onDelete={handleDelete}
             />
@@ -196,6 +228,9 @@ function ProjectDetailContent() {
         onOpenChange={handleDialogOpenChange}
         initialService={selectedService ?? undefined}
         serviceOptions={allServices ?? []}
+        onCompleted={(serviceId) => {
+          setActiveServiceId(serviceId);
+        }}
       />
 
       <ProjectServiceDeleteDialog
@@ -216,6 +251,29 @@ function ProjectDetailContent() {
       >
         <Plus className='h-5 w-5' aria-hidden />
       </Button>
+
+      <AnimatePresence>
+        {activeServiceId && (
+          <ProjectServiceDetailPanel
+            key={activeServiceId}
+            service={activeService}
+            serviceName={activeServiceName}
+            open={Boolean(activeServiceId)}
+            onClose={() => setActiveServiceId(null)}
+            onEdit={() => {
+              if (activeService) {
+                handleModify(activeService);
+              }
+            }}
+            onDelete={() => {
+              if (activeService) {
+                handleDelete(activeService);
+              }
+            }}
+            loading={!activeService}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
