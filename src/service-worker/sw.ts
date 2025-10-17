@@ -39,6 +39,7 @@ registerRoute(
     try {
       return await appShellHandler(options);
     } catch (error) {
+      console.error('Failed to serve app shell from cache', error);
       const offlineResponse = await caches.match(OFFLINE_FALLBACK_URL, { ignoreSearch: true });
       if (offlineResponse) return offlineResponse;
       return Response.error();
@@ -82,7 +83,7 @@ self.addEventListener('push', (event) => {
   if (!event.data) return;
   const data = event.data.json() as NotificationPayload;
   const title = data.title ?? 'Taskez PM';
-  const options: NotificationOptions = {
+  const options: NotificationOptions & { vibrate?: number[] } = {
     body: data.body,
     icon: data.icon ?? '/icon.png',
     badge: '/badge.png',
@@ -98,7 +99,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     (async () => {
-      const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const focused = allClients.find((client) => client.focused);
       if (focused) {
         return focused.focus();
@@ -106,7 +107,7 @@ self.addEventListener('notificationclick', (event) => {
       if (allClients.length > 0) {
         return allClients[0].focus();
       }
-      return clients.openWindow('/');
+      return self.clients.openWindow('/');
     })()
   );
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import type { Table } from 'dexie';
 import { z } from 'zod';
 
 import { db } from '../db';
@@ -172,15 +173,19 @@ async function pullServerDeltas(baseUrl: string, signal?: AbortSignal) {
 }
 
 async function applyServerPayload(rawPayload: Record<string, unknown>) {
-  const tables = Object.values(TABLE_CONFIG).map((config) => config.table);
-  await db.transaction('rw', tables.concat([db.outbox, db.meta]), async () => {
+  const tables = Object.values(TABLE_CONFIG).map(
+    (config) => config.table as Table<unknown, string>
+  );
+  const transactionalTables: Table<unknown, string>[] = [...tables, db.outbox, db.meta];
+  await db.transaction('rw', transactionalTables, async () => {
     for (const key of Object.keys(TABLE_CONFIG) as TableKey[]) {
       const config = TABLE_CONFIG[key];
       const collection = resolveCollection(rawPayload, key);
       if (!collection?.length) continue;
       const parsed = config.schema.array().safeParse(collection);
       if (!parsed.success) continue;
-      await config.table.bulkPut(parsed.data);
+      const table = config.table as Table<unknown, string>;
+      await table.bulkPut(parsed.data as unknown[]);
     }
 
     const deletions = rawPayload.deletions;

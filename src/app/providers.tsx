@@ -3,7 +3,7 @@
 import { Auth0Provider } from '@auth0/auth0-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { auth0Config } from '@/lib/auth0';
 import { useAppearanceStore } from '@/stores/appearance';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -36,7 +36,8 @@ function HashRouterBridge() {
 
       window.history.replaceState(null, '', targetPath);
       if (targetPath !== currentPath) {
-        router.replace(targetPath);
+        const typedTargetPath = targetPath as Parameters<typeof router.replace>[0];
+        router.replace(typedTargetPath);
       }
     } catch (error) {
       console.warn('Failed to process deep-link hash redirect', error);
@@ -79,7 +80,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     >
       <ThemeProvider attribute='class' defaultTheme='dark' enableSystem disableTransitionOnChange>
         <QueryClientProvider client={client}>
-          <HashRouterBridge />
+          <Suspense fallback={null}>
+            <HashRouterBridge />
+          </Suspense>
           <AccentHydrator />
           {children}
         </QueryClientProvider>
