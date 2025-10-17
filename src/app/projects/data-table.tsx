@@ -122,15 +122,15 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
         cell: ({ row }) => {
           const project = row.original;
           return (
-            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[18rem] md:max-w-[24rem]'>
               <span
-                className='line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground'
+                className='line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground hyphens-auto'
                 title={project.title}
               >
                 {project.title}
               </span>
               {project.description && (
-                <span className='text-xs text-muted-foreground line-clamp-3 break-words'>
+                <span className='line-clamp-3 break-words text-xs text-muted-foreground hyphens-auto'>
                   {project.description}
                 </span>
               )}
