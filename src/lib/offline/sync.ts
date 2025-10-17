@@ -11,6 +11,7 @@ import {
   OutboxEntitySchema,
   type OutboxEntry,
   ProfileSchema,
+  ProjectBillableSchema,
   ProjectEventSchema,
   ProjectSchema,
   ProjectServiceExtraSchema,
@@ -33,6 +34,7 @@ const TABLE_CONFIG = {
   projectServices: { schema: ProjectServiceSchema, table: db.projectServices },
   projectServiceUnits: { schema: ProjectServiceUnitSchema, table: db.projectServiceUnits },
   projectServiceExtras: { schema: ProjectServiceExtraSchema, table: db.projectServiceExtras },
+  projectBillables: { schema: ProjectBillableSchema, table: db.projectBillables },
   profiles: { schema: ProfileSchema, table: db.profiles }
 } as const;
 

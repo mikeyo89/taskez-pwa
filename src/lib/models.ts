@@ -88,6 +88,7 @@ export type ProjectService = z.infer<typeof ProjectServiceSchema>;
 export const ProjectServiceUnitSchema = z.object({
   id: z.uuid(),
   project_service_id: z.uuid(),
+  project_billable_id: z.string().uuid().optional().nullable(),
   title: z.string().min(1),
   description: z.string().optional().default(''),
   budget_type: z.enum(['dollar', 'percent']),
@@ -104,6 +105,22 @@ export const ProjectServiceUnitSchema = z.object({
   deleted_at: NullableISOString
 });
 export type ProjectServiceUnit = z.infer<typeof ProjectServiceUnitSchema>;
+
+export const ProjectBillableSchema = z.object({
+  id: z.uuid(),
+  project_id: z.uuid(),
+  billable_type: z.enum(['invoice', 'estimate']),
+  approved_ind: z.boolean().default(false),
+  approved_date: z.string().optional().default(''),
+  completed_ind: z.boolean().default(false),
+  completed_date: z.string().optional().default(''),
+  paid_ind: z.boolean().default(false),
+  paid_date: z.string().optional().default(''),
+  updated_at: z.iso.datetime(),
+  server_updated_at: z.string().optional(),
+  deleted_at: NullableISOString
+});
+export type ProjectBillable = z.infer<typeof ProjectBillableSchema>;
 
 export const ProjectServiceExtraSchema = z.object({
   id: z.uuid(),
@@ -157,6 +174,7 @@ export const OutboxEntitySchema = z.enum([
   'projectServices',
   'projectServiceUnits',
   'projectServiceExtras',
+  'projectBillables',
   'profiles'
 ]);
 export type OutboxEntity = z.infer<typeof OutboxEntitySchema>;

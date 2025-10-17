@@ -5,6 +5,7 @@ import type {
   MetaEntry,
   OutboxEntry,
   Project,
+  ProjectBillable,
   ProjectEvent,
   ProjectService,
   ProjectServiceExtra,
@@ -22,6 +23,7 @@ export class AppDB extends Dexie {
   projectServices!: Table<ProjectService, string>;
   projectServiceUnits!: Table<ProjectServiceUnit, string>;
   projectServiceExtras!: Table<ProjectServiceExtra, string>;
+  projectBillables!: Table<ProjectBillable, string>;
   profiles!: Table<Profile, string>;
   outbox!: Table<OutboxEntry, string>;
   meta!: Table<MetaEntry, string>;
@@ -83,6 +85,29 @@ export class AppDB extends Dexie {
         '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
       projectServiceExtras:
         '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
+      profiles: '&id, updated_at, server_updated_at',
+      outbox:
+        '&op_id, &idempotency_key, entity, entity_id, action, status, created_at, updated_at',
+      meta: '&key'
+    });
+
+    this.version(5).stores({
+      clients: '&id, name, updated_at, server_updated_at, deleted_at',
+      members:
+        '&id, client_id, last_name, updated_at, server_updated_at, deleted_at, [client_id+last_name]',
+      services: '&id, name, updated_at, server_updated_at, deleted_at',
+      projects:
+        '&id, client_id, title, est_completion_date, completed_ind, updated_at, server_updated_at, deleted_at, [client_id+updated_at], [completed_ind+updated_at], [est_completion_date]',
+      projectEvents:
+        '&id, project_id, reason, updated_at, server_updated_at, deleted_at, [project_id+updated_at]',
+      projectServices:
+        '&id, project_id, service_id, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_id+service_id], [project_id+updated_at]',
+      projectServiceUnits:
+        '&id, project_service_id, project_billable_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
+      projectServiceExtras:
+        '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
+      projectBillables:
+        '&id, project_id, billable_type, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_id+updated_at]',
       profiles: '&id, updated_at, server_updated_at',
       outbox:
         '&op_id, &idempotency_key, entity, entity_id, action, status, created_at, updated_at',
