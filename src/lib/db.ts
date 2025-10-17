@@ -2,6 +2,8 @@ import Dexie, { Table } from 'dexie';
 import type {
   Client,
   Member,
+  MetaEntry,
+  OutboxEntry,
   Project,
   ProjectEvent,
   ProjectService,
@@ -21,6 +23,8 @@ export class AppDB extends Dexie {
   projectServiceUnits!: Table<ProjectServiceUnit, string>;
   projectServiceExtras!: Table<ProjectServiceExtra, string>;
   profiles!: Table<Profile, string>;
+  outbox!: Table<OutboxEntry, string>;
+  meta!: Table<MetaEntry, string>;
 
   constructor() {
     super('taskez_pwa_db');
@@ -62,6 +66,27 @@ export class AppDB extends Dexie {
       projectServiceExtras:
         '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, [project_service_id+updated_at]',
       profiles: '&id, updated_at'
+    });
+
+    this.version(4).stores({
+      clients: '&id, name, updated_at, server_updated_at, deleted_at',
+      members:
+        '&id, client_id, last_name, updated_at, server_updated_at, deleted_at, [client_id+last_name]',
+      services: '&id, name, updated_at, server_updated_at, deleted_at',
+      projects:
+        '&id, client_id, title, est_completion_date, completed_ind, updated_at, server_updated_at, deleted_at, [client_id+updated_at], [completed_ind+updated_at], [est_completion_date]',
+      projectEvents:
+        '&id, project_id, reason, updated_at, server_updated_at, deleted_at, [project_id+updated_at]',
+      projectServices:
+        '&id, project_id, service_id, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_id+service_id], [project_id+updated_at]',
+      projectServiceUnits:
+        '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
+      projectServiceExtras:
+        '&id, project_service_id, title, approved_ind, completed_ind, paid_ind, updated_at, server_updated_at, deleted_at, [project_service_id+updated_at]',
+      profiles: '&id, updated_at, server_updated_at',
+      outbox:
+        '&op_id, &idempotency_key, entity, entity_id, action, status, created_at, updated_at',
+      meta: '&key'
     });
 
     // Example migration pattern if/when you add indexes later:

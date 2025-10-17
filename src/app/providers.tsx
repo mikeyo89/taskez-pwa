@@ -6,6 +6,7 @@ import { ThemeProvider } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
 import { auth0Config } from '@/lib/auth0';
 import { useAppearanceStore } from '@/stores/appearance';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 function AccentHydrator() {
   const hydrate = useAppearanceStore((state) => state.hydrate);
@@ -13,6 +14,34 @@ function AccentHydrator() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  return null;
+}
+
+function HashRouterBridge() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const { hash, origin } = window.location;
+    if (!hash || !hash.startsWith('#/')) return;
+
+    try {
+      const targetUrl = new URL(hash.slice(1), origin);
+      const targetPath = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+      const currentSearch = searchParams.toString();
+      const currentPath = `${pathname}${currentSearch ? `?${currentSearch}` : ''}`;
+
+      window.history.replaceState(null, '', targetPath);
+      if (targetPath !== currentPath) {
+        router.replace(targetPath);
+      }
+    } catch (error) {
+      console.warn('Failed to process deep-link hash redirect', error);
+    }
+  }, [pathname, router, searchParams]);
 
   return null;
 }
@@ -50,6 +79,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     >
       <ThemeProvider attribute='class' defaultTheme='dark' enableSystem disableTransitionOnChange>
         <QueryClientProvider client={client}>
+          <HashRouterBridge />
           <AccentHydrator />
           {children}
         </QueryClientProvider>

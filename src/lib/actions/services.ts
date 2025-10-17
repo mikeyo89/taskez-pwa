@@ -1,6 +1,7 @@
 'use Service';
 
 import { db } from '../db';
+import { queueOutboxMutation } from '../offline/outbox';
 import { ServiceSchema, type Service } from '../models';
 
 const nowISO = () => new Date().toISOString();
@@ -17,6 +18,7 @@ export async function createService(input: {
     updated_at: nowISO()
   });
   await db.services.add(entity);
+  await queueOutboxMutation('services', 'create', entity, entity.id);
   return entity;
 }
 
@@ -33,6 +35,7 @@ export async function updateService(
     updated_at: nowISO()
   });
   await db.services.put(updated);
+  await queueOutboxMutation('services', 'update', updated, id);
   return updated;
 }
 
@@ -42,6 +45,7 @@ export async function deleteService(id: string): Promise<void> {
     await db.members.where('Service_id').equals(id).delete();
     await db.services.delete(id);
   });
+  await queueOutboxMutation('services', 'delete', { id }, id);
 }
 
 export async function listServices(): Promise<Service[]> {

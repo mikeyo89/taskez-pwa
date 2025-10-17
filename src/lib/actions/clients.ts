@@ -2,6 +2,7 @@
 
 import Dexie from 'dexie';
 import { db } from '../db';
+import { queueOutboxMutation } from '../offline/outbox';
 import { ClientSchema, MemberSchema, type Client, type Member } from '../models';
 
 const nowISO = () => new Date().toISOString();
@@ -15,6 +16,7 @@ export async function createClient(input: { name: string; description?: string }
     updated_at: nowISO()
   });
   await db.clients.add(entity);
+  await queueOutboxMutation('clients', 'create', entity, entity.id);
   return entity;
 }
 
@@ -31,15 +33,25 @@ export async function updateClient(
     updated_at: nowISO()
   });
   await db.clients.put(updated);
+  await queueOutboxMutation('clients', 'update', updated, id);
   return updated;
 }
 
 export async function deleteClient(id: string): Promise<void> {
+  const deletedMemberIds: string[] = [];
   // Transaction: delete client and its members atomically
   await db.transaction('rw', db.clients, db.members, async () => {
+    const members = await db.members.where('client_id').equals(id).toArray();
+    deletedMemberIds.push(...members.map((member) => member.id));
     await db.members.where('client_id').equals(id).delete();
     await db.clients.delete(id);
   });
+  await queueOutboxMutation('clients', 'delete', { id }, id);
+  await Promise.all(
+    deletedMemberIds.map((memberId) =>
+      queueOutboxMutation('members', 'delete', { id: memberId, client_id: id }, memberId)
+    )
+  );
 }
 
 export async function listClients(): Promise<Client[]> {
@@ -69,6 +81,10 @@ export async function addMember(
   await db.members.add(entity);
   // Optionally bump parent updated_at for “recently updated” sorting
   await db.clients.update(client_id, { updated_at: nowISO() });
+  await queueOutboxMutation('members', 'create', entity, entity.id);
+  await queueOutboxMutation('clients', 'update', { id: client_id }, client_id, {
+    idempotencyKey: `clients:${client_id}:touch`
+  });
   return entity;
 }
 
@@ -93,6 +109,10 @@ export async function updateMember(
   });
   await db.members.put(updated);
   await db.clients.update(existing.client_id, { updated_at: nowISO() });
+  await queueOutboxMutation('members', 'update', updated, id);
+  await queueOutboxMutation('clients', 'update', { id: existing.client_id }, existing.client_id, {
+    idempotencyKey: `clients:${existing.client_id}:touch`
+  });
   return updated;
 }
 
@@ -100,4 +120,10 @@ export async function deleteMember(id: string): Promise<void> {
   const existing = await db.members.get(id);
   await db.members.delete(id);
   if (existing) await db.clients.update(existing.client_id, { updated_at: nowISO() });
+  await queueOutboxMutation('members', 'delete', { id }, id);
+  if (existing) {
+    await queueOutboxMutation('clients', 'update', { id: existing.client_id }, existing.client_id, {
+      idempotencyKey: `clients:${existing.client_id}:touch`
+    });
+  }
 }
