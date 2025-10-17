@@ -14,15 +14,18 @@ import {
 } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
 import { ACCENT_PRESETS, type AccentKey, type AccentPreset } from '@/lib/appearance';
+import { auth0Config } from '@/lib/auth0';
 import type { Profile } from '@/lib/models';
 import { cn } from '@/lib/utils';
 import { useProfile, useProfileUpdater } from '@/lib/hooks/useProfile';
 import { useAppearanceStore } from '@/stores/appearance';
+import { useAuth0 } from '@auth0/auth0-react';
 import {
   ArrowLeft,
   BarChart2,
   Bell,
   Download,
+  LogIn,
   LogOut,
   Moon,
   Pencil,
@@ -291,6 +294,7 @@ function ProfileDrawer() {
   const hydrated = useAppearanceStore((state) => state.hydrated);
   const { profile, loading: profileLoading } = useProfile();
   const { saveProfile } = useProfileUpdater();
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect, logout } = useAuth0();
 
   const accentPresets = useMemo(() => ACCENT_PRESETS, []);
   const [open, setOpen] = useState(false);
@@ -300,6 +304,19 @@ function ProfileDrawer() {
   const [error, setError] = useState<string | null>(null);
   const [accentUpdating, setAccentUpdating] = useState(false);
   const [formState, setFormState] = useState<ProfileFormState>(() => createEmptyProfile(accent));
+
+  const handleSignIn = useCallback(() => {
+    void loginWithRedirect();
+  }, [loginWithRedirect]);
+
+  const handleSignOut = useCallback(() => {
+    setOpen(false);
+    logout({
+      logoutParams: {
+        returnTo: typeof window !== 'undefined' ? window.location.origin : auth0Config.appUrl
+      }
+    });
+  }, [logout, setOpen]);
 
   const resetForm = useCallback(() => {
     if (profile) {
@@ -483,6 +500,10 @@ function ProfileDrawer() {
                 onAccentSelect={handleAccentSelect}
                 onNavigateProfile={handleNavigateProfile}
                 accentUpdating={accentUpdating}
+                isAuthenticated={isAuthenticated}
+                authLoading={authLoading}
+                onSignIn={handleSignIn}
+                onSignOut={handleSignOut}
               />
               <ProfilePanel
                 accentPresets={accentPresets}
@@ -510,9 +531,23 @@ type HomePanelProps = {
   onAccentSelect: (accent: AccentKey) => void | Promise<void>;
   onNavigateProfile: () => void;
   accentUpdating: boolean;
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  onSignIn: () => void;
+  onSignOut: () => void;
 };
 
-function HomePanel({ accent, accentPresets, onAccentSelect, onNavigateProfile, accentUpdating }: HomePanelProps) {
+function HomePanel({
+  accent,
+  accentPresets,
+  onAccentSelect,
+  onNavigateProfile,
+  accentUpdating,
+  isAuthenticated,
+  authLoading,
+  onSignIn,
+  onSignOut
+}: HomePanelProps) {
   return (
     <div className='flex h-full flex-col overflow-y-auto px-4 pb-6 pt-2'>
       <section>
@@ -578,14 +613,37 @@ function HomePanel({ accent, accentPresets, onAccentSelect, onNavigateProfile, a
         </div>
       </section>
 
-      <div className='mt-auto pt-6'>
+      <div
+        className='mt-auto pt-6'
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
         <Button
-          variant='destructive'
-          className='w-full justify-center gap-2 rounded-2xl'
-          onClick={() => {}}
+          type='button'
+          variant={isAuthenticated ? 'destructive' : 'default'}
+          className={cn(
+            'w-full justify-center gap-2 rounded-2xl text-base font-semibold transition',
+            !isAuthenticated && 'hover:opacity-95'
+          )}
+          style={
+            isAuthenticated
+              ? undefined
+              : {
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-foreground)'
+                }
+          }
+          onClick={isAuthenticated ? onSignOut : onSignIn}
+          disabled={authLoading}
+          aria-busy={authLoading}
         >
-          <LogOut className='h-4 w-4' aria-hidden />
-          Sign out
+          {authLoading ? (
+            <Spinner className='h-4 w-4 text-current' aria-hidden />
+          ) : isAuthenticated ? (
+            <LogOut className='h-4 w-4' aria-hidden />
+          ) : (
+            <LogIn className='h-4 w-4' aria-hidden />
+          )}
+          {authLoading ? 'Please wait…' : isAuthenticated ? 'Sign out' : 'Sign in'}
         </Button>
       </div>
     </div>
