@@ -9,7 +9,12 @@ export const PROFILE_ID = 'profile';
 export type ProfilePatch = Partial<
   Pick<
     Profile,
-    'company_name' | 'preferred_name' | 'preferred_email' | 'preferred_phone' | 'preferred_color'
+    | 'company_name'
+    | 'preferred_name'
+    | 'preferred_email'
+    | 'preferred_phone'
+    | 'preferred_color'
+    | 'notifications_enabled'
   >
 >;
 
@@ -41,6 +46,10 @@ function sanitizePatch(patch: ProfilePatch): SanitizedPatch {
     sanitized.preferred_color = patch.preferred_color;
   }
 
+  if ('notifications_enabled' in patch) {
+    sanitized.notifications_enabled = Boolean(patch.notifications_enabled);
+  }
+
   return sanitized;
 }
 
@@ -61,6 +70,7 @@ export function composeProfile(
         preferred_email: sanitized.preferred_email ?? '',
         preferred_phone: sanitized.preferred_phone ?? '',
         preferred_color: sanitized.preferred_color ?? DEFAULT_ACCENT,
+        notifications_enabled: sanitized.notifications_enabled ?? false,
         created_at: createdAt,
         updated_at: timestamp
       });
@@ -71,7 +81,8 @@ export function composeProfile(
     id: PROFILE_ID,
     created_at: createdAt,
     updated_at: timestamp,
-    preferred_color: sanitized.preferred_color ?? base.preferred_color
+    preferred_color: sanitized.preferred_color ?? base.preferred_color,
+    notifications_enabled: sanitized.notifications_enabled ?? base.notifications_enabled
   });
 }
 

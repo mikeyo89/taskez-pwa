@@ -19,6 +19,7 @@ describe('composeProfile', () => {
     expect(profile.preferred_email).toBe('team@taskez.com');
     expect(profile.preferred_phone).toBe('(555) 123-4567');
     expect(profile.preferred_color).toBe(DEFAULT_ACCENT);
+    expect(profile.notifications_enabled).toBe(false);
     expect(profile.created_at).toBe(now);
     expect(profile.updated_at).toBe(now);
   });
@@ -35,8 +36,16 @@ describe('composeProfile', () => {
     expect(updated.preferred_name).toBe('J. Doe');
     expect(updated.preferred_email).toBe('');
     expect(updated.preferred_color).toBe('emerald');
+    expect(updated.notifications_enabled).toBe(false);
     expect(updated.created_at).toBe(existingCreated);
     expect(updated.updated_at).toBe(now);
+  });
+
+  it('updates notification preferences when provided', () => {
+    const created = composeProfile(undefined, {}, now);
+    const updated = composeProfile(created, { notifications_enabled: true }, now);
+
+    expect(updated.notifications_enabled).toBe(true);
   });
 
   it('throws when provided email is invalid', () => {
