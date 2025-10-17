@@ -1,13 +1,19 @@
 'use client';
 
+import { ArrowLeft, MoreHorizontal, Pencil, Plus, Send, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
@@ -15,12 +21,13 @@ import { useLiveServices } from '@/lib/hooks/useLiveServices';
 import { useProjectDetail } from '@/lib/hooks/useProjectDetail';
 import { useProjectEventsQuery } from '@/lib/hooks/useProjectEventsQuery';
 import { useProjectServicesQuery } from '@/lib/hooks/useProjectServicesQuery';
+import { DeleteProjectDialog, UpdateProjectDialog } from '../form';
 
 import { ProjectEventsTab } from './project-events-tab';
-import { ProjectServiceDialog } from './project-service-dialog';
 import { ProjectServiceDeleteDialog } from './project-service-delete-dialog';
-import { ProjectServicesTab } from './project-services-tab';
 import { ProjectServiceDetailPanel } from './project-service-detail-panel';
+import { ProjectServiceDialog } from './project-service-dialog';
+import { ProjectServicesTab } from './project-services-tab';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -60,9 +67,13 @@ function ProjectDetailContent() {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedService, setSelectedService] = useState<ProjectServiceWithChildren | null>(null);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<ProjectServiceWithChildren | null>(null);
+  const [serviceDeleteOpen, setServiceDeleteOpen] = useState(false);
+  const [serviceDeleteTarget, setServiceDeleteTarget] = useState<ProjectServiceWithChildren | null>(
+    null
+  );
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
+  const [projectUpdateOpen, setProjectUpdateOpen] = useState(false);
+  const [projectDeleteOpen, setProjectDeleteOpen] = useState(false);
 
   const availableServicesLookup = useMemo(
     () => new Map((allServices ?? []).map((service) => [service.id, service.name])),
@@ -89,6 +100,29 @@ function ProjectDetailContent() {
     }
   }, [activeServiceId, servicesQuery.data]);
 
+  useEffect(() => {
+    if (!project) {
+      setProjectUpdateOpen(false);
+      setProjectDeleteOpen(false);
+    }
+  }, [project]);
+
+  const projectActionsDisabled = detailLoading || !project;
+
+  const handleProjectSend = () => {
+    if (!project) return;
+  };
+
+  const handleProjectUpdate = () => {
+    if (!project) return;
+    setProjectUpdateOpen(true);
+  };
+
+  const handleProjectDelete = () => {
+    if (!project) return;
+    setProjectDeleteOpen(true);
+  };
+
   if (!projectId) {
     return (
       <div className='flex flex-col gap-3'>
@@ -98,7 +132,9 @@ function ProjectDetailContent() {
             Back to Projects
           </Link>
         </Button>
-        <p className='text-sm text-muted-foreground'>We could not determine which project to show.</p>
+        <p className='text-sm text-muted-foreground'>
+          We could not determine which project to show.
+        </p>
       </div>
     );
   }
@@ -135,8 +171,8 @@ function ProjectDetailContent() {
   };
 
   const handleDelete = (service: ProjectServiceWithChildren) => {
-    setDeleteTarget(service);
-    setDeleteOpen(true);
+    setServiceDeleteTarget(service);
+    setServiceDeleteOpen(true);
   };
 
   const handlePrint = (service: ProjectServiceWithChildren) => {
@@ -155,11 +191,11 @@ function ProjectDetailContent() {
     setDialogOpen(open);
   };
 
-  const handleDeleteOpenChange = (open: boolean) => {
+  const handleServiceDeleteOpenChange = (open: boolean) => {
     if (!open) {
-      setDeleteTarget(null);
+      setServiceDeleteTarget(null);
     }
-    setDeleteOpen(open);
+    setServiceDeleteOpen(open);
   };
 
   return (
@@ -172,6 +208,38 @@ function ProjectDetailContent() {
               Back
             </Link>
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon-sm'
+                className='text-muted-foreground hover:text-foreground'
+                disabled={projectActionsDisabled}
+                aria-label='Project actions'
+              >
+                <MoreHorizontal className='h-4 w-4' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end' className='w-44'>
+              <DropdownMenuItem onClick={handleProjectSend} className='gap-2'>
+                <Send className='h-4 w-4' />
+                Send...
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProjectUpdate} className='gap-2' disabled={!project}>
+                <Pencil className='h-4 w-4' />
+                Update
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleProjectDelete}
+                className='gap-2 text-destructive focus:text-destructive'
+                disabled={!project}
+              >
+                <Trash2 className='h-4 w-4' />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className='flex flex-col gap-2'>
@@ -236,10 +304,25 @@ function ProjectDetailContent() {
       />
 
       <ProjectServiceDeleteDialog
-        open={deleteOpen}
-        onOpenChange={handleDeleteOpenChange}
-        service={deleteTarget}
+        open={serviceDeleteOpen}
+        onOpenChange={handleServiceDeleteOpenChange}
+        service={serviceDeleteTarget}
         serviceLookup={availableServicesLookup}
+      />
+
+      {project && (
+        <UpdateProjectDialog
+          project={project}
+          clientName={client?.name}
+          open={projectUpdateOpen}
+          onOpenChange={setProjectUpdateOpen}
+        />
+      )}
+
+      <DeleteProjectDialog
+        project={projectDeleteOpen && project ? project : null}
+        open={projectDeleteOpen}
+        onOpenChange={setProjectDeleteOpen}
       />
 
       <Button

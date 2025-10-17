@@ -1,12 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -28,31 +22,9 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import {
-  CalendarClock,
-  CheckCheck,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsUpDown,
-  Eye,
-  FileText,
-  Loader2,
-  Pencil,
-  Trash2
-} from 'lucide-react';
+import { CalendarClock, CheckCheck, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import {
-  cloneElement,
-  isValidElement,
-  useMemo,
-  useState,
-  type HTMLAttributes,
-  type KeyboardEvent,
-  type MouseEvent,
-  type ReactElement
-} from 'react';
-
-import { DeleteProjectDialog, UpdateProjectDialog } from './form';
+import { useMemo, useState } from 'react';
 
 type ProjectsTableProps = {
   data: Project[];
@@ -85,10 +57,7 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
   const [globalFilter, setGlobalFilter] = useState('');
   const [showActive, setShowActive] = useState(false);
   const [showDueSoon, setShowDueSoon] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [updateOpen, setUpdateOpen] = useState(false);
-  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const router = useRouter();
 
   const clientLookup = useMemo(() => {
     return new Map(clients.map((client) => [client.id, client.name]));
@@ -211,16 +180,6 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
 
   const rows = table.getRowModel().rows;
 
-  const openUpdateDialog = (project: Project) => {
-    setEditingProject(project);
-    setUpdateOpen(true);
-  };
-
-  const openDeleteDialog = (project: Project) => {
-    setDeleteProject(project);
-    setDeleteOpen(true);
-  };
-
   return (
     <>
       <div
@@ -327,30 +286,36 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
               </TableRow>
             ) : rows.length ? (
               rows.map((row) => (
-                <ProjectRowActions
+                <TableRow
                   key={row.id}
-                  project={row.original}
-                  clients={clientLookup}
-                  onEdit={openUpdateDialog}
-                  onDelete={openDeleteDialog}
+                  data-state={row.getIsSelected() ? 'selected' : undefined}
+                  className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+                  onClick={() => {
+                    const projectId = row.original.id;
+                    router.push(`/projects/detail?projectId=${encodeURIComponent(projectId)}`);
+                  }}
+                  role='button'
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      const projectId = row.original.id;
+                      router.push(`/projects/detail?projectId=${encodeURIComponent(projectId)}`);
+                    }
+                  }}
                 >
-                  <TableRow
-                    data-state={row.getIsSelected() ? 'selected' : undefined}
-                    className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[22rem] md:max-w-[28rem]',
-                          cell.column.columnDef.meta?.className
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </ProjectRowActions>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[22rem] md:max-w-[28rem]',
+                        cell.column.columnDef.meta?.className
+                      )}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))
             ) : (
               <TableRow>
@@ -367,125 +332,7 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
           </TableBody>
         </Table>
       </div>
-
-      {editingProject && (
-        <UpdateProjectDialog
-          key={`${editingProject.id}-${editingProject.updated_at}`}
-          project={editingProject}
-          clientName={clientLookup.get(editingProject.client_id)}
-          open={updateOpen}
-          onOpenChange={(openState) => {
-            if (!openState) {
-              setEditingProject(null);
-            }
-            setUpdateOpen(openState);
-          }}
-        />
-      )}
-
-      <DeleteProjectDialog
-        project={deleteProject}
-        open={deleteOpen}
-        onOpenChange={(openState) => {
-          if (!openState) {
-            setDeleteProject(null);
-          }
-          setDeleteOpen(openState);
-        }}
-      />
     </>
-  );
-}
-
-function ProjectRowActions({
-  project,
-  clients,
-  onEdit,
-  onDelete,
-  children
-}: {
-  project: Project;
-  clients: Map<string, string>;
-  onEdit: (project: Project) => void;
-  onDelete: (project: Project) => void;
-  children: ReactElement;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const router = useRouter();
-
-  let child: ReactElement = children;
-  if (isValidElement<HTMLAttributes<HTMLTableRowElement>>(children)) {
-    const existingOnClick = children.props.onClick;
-    child = cloneElement(children, {
-      onClick: (event: MouseEvent<HTMLTableRowElement>) => {
-        existingOnClick?.(event);
-        setMenuOpen(true);
-      },
-      role: 'button',
-      tabIndex: 0,
-      onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          setMenuOpen(true);
-        }
-      },
-      className: cn(
-        children.props.className ?? '',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
-      )
-    });
-  }
-
-  const closeMenu = () => setMenuOpen(false);
-
-  const handleUpdate = () => {
-    closeMenu();
-    onEdit(project);
-  };
-
-  const handleDelete = () => {
-    closeMenu();
-    onDelete(project);
-  };
-
-  const handleView = () => {
-    closeMenu();
-    router.push(`/projects/detail?projectId=${encodeURIComponent(project.id)}`);
-  };
-
-  const handlePrint = () => closeMenu();
-
-  const clientName = clients.get(project.client_id) ?? 'Unknown client';
-
-  return (
-    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-      <DropdownMenuTrigger asChild>{child}</DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-48'>
-        <div className='px-3 py-2'>
-          <p className='text-sm font-semibold leading-tight text-foreground'>{project.title}</p>
-          <p className='text-xs text-muted-foreground'>for {clientName}</p>
-        </div>
-        <DropdownMenuItem onClick={handleView} className='gap-2'>
-          <Eye className='h-4 w-4' />
-          View
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handlePrint} className='gap-2'>
-          <FileText className='h-4 w-4' />
-          Print
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleUpdate} className='gap-2'>
-          <Pencil className='h-4 w-4' />
-          Update
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className='gap-2 text-destructive focus:text-destructive'
-        >
-          <Trash2 className='h-4 w-4' />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
