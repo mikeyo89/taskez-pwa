@@ -4,12 +4,14 @@ import Dexie from 'dexie';
 import { db } from '../db';
 import { queueOutboxMutation } from '../offline/outbox';
 import {
+  ProjectBillableSchema,
   ProjectEventSchema,
   ProjectSchema,
   ProjectServiceExtraSchema,
   ProjectServiceSchema,
   ProjectServiceUnitSchema,
   type Project,
+  type ProjectBillable,
   type ProjectEvent,
   type ProjectService,
   type ProjectServiceExtra,
@@ -119,6 +121,7 @@ export async function deleteProject(id: string): Promise<void> {
   const deletedServiceIds: string[] = [];
   const deletedUnitIds: string[] = [];
   const deletedExtraIds: string[] = [];
+  const deletedBillableIds: string[] = [];
 
   await db.transaction(
     'rw',
@@ -127,7 +130,8 @@ export async function deleteProject(id: string): Promise<void> {
       db.projectEvents,
       db.projectServices,
       db.projectServiceUnits,
-      db.projectServiceExtras
+      db.projectServiceExtras,
+      db.projectBillables
     ],
     async () => {
       existingProject = await db.projects.get(id);
@@ -136,6 +140,10 @@ export async function deleteProject(id: string): Promise<void> {
       const events = await db.projectEvents.where('project_id').equals(id).toArray();
       deletedEventIds.push(...events.map((event) => event.id));
       await db.projectEvents.where('project_id').equals(id).delete();
+
+      const billables = await db.projectBillables.where('project_id').equals(id).toArray();
+      deletedBillableIds.push(...billables.map((billable) => billable.id));
+      await db.projectBillables.where('project_id').equals(id).delete();
 
       const services = await db.projectServices.where('project_id').equals(id).toArray();
       if (services.length > 0) {
@@ -177,6 +185,9 @@ export async function deleteProject(id: string): Promise<void> {
     ),
     ...deletedExtraIds.map((extraId) =>
       queueOutboxMutation('projectServiceExtras', 'delete', { id: extraId }, extraId)
+    ),
+    ...deletedBillableIds.map((billableId) =>
+      queueOutboxMutation('projectBillables', 'delete', { id: billableId }, billableId)
     )
   ]);
 
@@ -324,6 +335,15 @@ export async function listProjectServicesByProject(project_id: string): Promise<
 export type ProjectServiceWithChildren = ProjectService & {
   units: ProjectServiceUnit[];
   extras: ProjectServiceExtra[];
+};
+
+export type ProjectBillableUnit = ProjectServiceUnit & {
+  service_id?: string;
+  service_name?: string;
+};
+
+export type ProjectBillableWithUnits = ProjectBillable & {
+  units: ProjectBillableUnit[];
 };
 
 export async function listProjectServicesWithChildren(
@@ -480,6 +500,7 @@ export async function addProjectServiceUnit(
   const entity: ProjectServiceUnit = ProjectServiceUnitSchema.parse({
     id: crypto.randomUUID(),
     project_service_id,
+    project_billable_id: null,
     title: input.title.trim(),
     description: input.description?.trim() ?? '',
     budget_type: input.budget_type,
@@ -529,6 +550,7 @@ export async function updateProjectServiceUnit(
       | 'budget_type'
       | 'budget_amount'
       | 'est_completion_date'
+      | 'project_billable_id'
       | 'approved_ind'
       | 'approved_date'
       | 'completed_ind'
@@ -564,6 +586,9 @@ export async function updateProjectServiceUnit(
     ...('est_completion_date' in patch
       ? { est_completion_date: normalizedPatch.est_completion_date as string }
       : {}),
+    ...('project_billable_id' in patch
+      ? { project_billable_id: patch.project_billable_id ?? null }
+      : {}),
     approved_ind: (normalizedPatch.approved_ind as boolean | undefined) ?? existing.approved_ind,
     approved_date: computeStatusDate('approved', existing, normalizedPatch, timestamp),
     completed_ind: (normalizedPatch.completed_ind as boolean | undefined) ?? existing.completed_ind,
@@ -594,6 +619,345 @@ export async function deleteProjectServiceUnit(id: string): Promise<void> {
     await bumpParentForProjectService(existing.project_service_id, parent);
     await queueOutboxMutation('projectServiceUnits', 'delete', { id }, id);
   }
+}
+
+// ---- Project Billables ----
+export async function listProjectBillables(
+  project_id: string
+): Promise<ProjectBillableWithUnits[]> {
+  const billables = await db.projectBillables
+    .where('[project_id+updated_at]')
+    .between([project_id, Dexie.minKey], [project_id, Dexie.maxKey])
+    .reverse()
+    .toArray();
+
+  if (billables.length === 0) {
+    return [];
+  }
+
+  const billableIds = billables.map((billable) => billable.id);
+  const units = await db.projectServiceUnits
+    .where('project_billable_id')
+    .anyOf(billableIds)
+    .toArray();
+
+  if (units.length === 0) {
+    return billables.map((billable) => ({ ...billable, units: [] }));
+  }
+
+  const projectServiceIds = Array.from(
+    new Set(units.map((unit) => unit.project_service_id))
+  );
+  const projectServices = await db.projectServices.bulkGet(projectServiceIds);
+  const projectServiceLookup = new Map<string, ProjectService>();
+  projectServices.forEach((service, index) => {
+    const id = projectServiceIds[index];
+    if (service) {
+      projectServiceLookup.set(id, service);
+    }
+  });
+
+  const serviceIds = Array.from(
+    new Set(
+      projectServices
+        .map((service) => service?.service_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+  const services = await db.services.bulkGet(serviceIds);
+  const serviceNameLookup = new Map<string, string>();
+  services.forEach((service, index) => {
+    const id = serviceIds[index];
+    if (service) {
+      serviceNameLookup.set(id, service.name);
+    }
+  });
+
+  const unitBuckets = new Map<string, ProjectBillableUnit[]>();
+  units.forEach((unit) => {
+    if (!unit.project_billable_id) return;
+    const parent = projectServiceLookup.get(unit.project_service_id);
+    const serviceName = parent ? serviceNameLookup.get(parent.service_id) : undefined;
+    const enriched: ProjectBillableUnit = {
+      ...unit,
+      service_id: parent?.service_id,
+      service_name: serviceName
+    };
+    const bucket = unitBuckets.get(unit.project_billable_id);
+    if (bucket) {
+      bucket.push(enriched);
+    } else {
+      unitBuckets.set(unit.project_billable_id, [enriched]);
+    }
+  });
+
+  return billables.map((billable) => ({
+    ...billable,
+    units: (unitBuckets.get(billable.id) ?? []).sort((a, b) =>
+      a.updated_at < b.updated_at ? 1 : -1
+    )
+  }));
+}
+
+export async function createProjectBillable(input: {
+  project_id: string;
+  billable_type: ProjectBillable['billable_type'];
+  service_unit_ids: string[];
+  approved_ind?: boolean;
+  approved_date?: string;
+  completed_ind?: boolean;
+  completed_date?: string;
+  paid_ind?: boolean;
+  paid_date?: string;
+}): Promise<ProjectBillableWithUnits> {
+  if (input.service_unit_ids.length === 0) {
+    throw new Error('Select at least one service unit to create a billable');
+  }
+
+  const timestamp = nowISO();
+  const approvedFlag =
+    input.approved_ind ?? (input.billable_type === 'invoice' ? true : false);
+  const completedFlag = input.completed_ind ?? false;
+  const paidFlag = input.paid_ind ?? false;
+
+  const entity: ProjectBillable = ProjectBillableSchema.parse({
+    id: crypto.randomUUID(),
+    project_id: input.project_id,
+    billable_type: input.billable_type,
+    approved_ind: approvedFlag,
+    approved_date: initialStatusDate(approvedFlag, input.approved_date, timestamp),
+    completed_ind: completedFlag,
+    completed_date: initialStatusDate(completedFlag, input.completed_date, timestamp),
+    paid_ind: paidFlag,
+    paid_date: initialStatusDate(paidFlag, input.paid_date, timestamp),
+    updated_at: timestamp
+  });
+
+  const contexts = await Promise.all(
+    input.service_unit_ids.map(async (unitId) => {
+      const unit = await db.projectServiceUnits.get(unitId);
+      if (!unit) throw new Error('Service unit not found');
+      if (unit.project_billable_id) {
+        throw new Error('One or more service units are already assigned to a billable');
+      }
+      const parent = await fetchProjectServiceOrThrow(unit.project_service_id);
+      if (parent.project_id !== input.project_id) {
+        throw new Error('Service unit does not belong to the selected project');
+      }
+      if (input.billable_type === 'estimate' && unit.approved_ind) {
+        throw new Error('Estimates can only include units that are not approved');
+      }
+      if (input.billable_type === 'invoice' && !unit.approved_ind) {
+        throw new Error('Invoices require units that are already approved');
+      }
+      const serviceName = await resolveServiceName(parent.service_id);
+      return { unit, parent, serviceName };
+    })
+  );
+
+  const updatedUnits = contexts.map(({ unit }) =>
+    ProjectServiceUnitSchema.parse({
+      ...unit,
+      project_billable_id: entity.id,
+      approved_ind: unit.approved_ind || entity.approved_ind,
+      approved_date:
+        unit.approved_ind || !entity.approved_ind
+          ? unit.approved_date
+          : entity.approved_date || timestamp,
+      completed_ind: unit.completed_ind || entity.completed_ind,
+      completed_date:
+        unit.completed_ind || !entity.completed_ind
+          ? unit.completed_date
+          : entity.completed_date || timestamp,
+      paid_ind: unit.paid_ind || entity.paid_ind,
+      paid_date:
+        unit.paid_ind || !entity.paid_ind
+          ? unit.paid_date
+          : entity.paid_date || timestamp,
+      updated_at: timestamp
+    })
+  );
+
+  await db.transaction('rw', [db.projectBillables, db.projectServiceUnits], async () => {
+    await db.projectBillables.add(entity);
+    await Promise.all(updatedUnits.map((unit) => db.projectServiceUnits.put(unit)));
+  });
+
+  const uniqueParentIds = Array.from(
+    new Set(contexts.map((context) => context.parent.id))
+  );
+
+  await Promise.all(
+    uniqueParentIds.map((parentId) => {
+      const parent = contexts.find((context) => context.parent.id === parentId)?.parent;
+      return parent
+        ? bumpParentForProjectService(parentId, parent, timestamp)
+        : Promise.resolve();
+    })
+  );
+
+  await db.projects.update(entity.project_id, { updated_at: timestamp });
+
+  await Promise.all([
+    queueOutboxMutation('projectBillables', 'create', entity, entity.id),
+    ...updatedUnits.map((unit) =>
+      queueOutboxMutation('projectServiceUnits', 'update', unit, unit.id)
+    )
+  ]);
+
+  await queueProjectTouch(entity.project_id);
+
+  await recordProjectEvent(
+    entity.project_id,
+    'project-billable.created',
+    `${capitalize(entity.billable_type)} billable created with ${updatedUnits.length} unit${
+      updatedUnits.length === 1 ? '' : 's'
+    }.`
+  );
+
+  await logBillableStatusEvents(undefined, entity);
+
+  await Promise.all(
+    contexts.map(({ unit, parent, serviceName }, index) =>
+      logUnitStatusEvents(unit, updatedUnits[index], parent, serviceName)
+    )
+  );
+
+  return {
+    ...entity,
+    units: updatedUnits.map((unit, index) => ({
+      ...unit,
+      service_id: contexts[index].parent.service_id,
+      service_name: contexts[index].serviceName
+    }))
+  };
+}
+
+export async function updateProjectBillable(
+  id: string,
+  patch: Partial<
+    Pick<
+      ProjectBillable,
+      | 'approved_ind'
+      | 'approved_date'
+      | 'completed_ind'
+      | 'completed_date'
+      | 'paid_ind'
+      | 'paid_date'
+    >
+  >
+): Promise<ProjectBillableWithUnits> {
+  const existing = await db.projectBillables.get(id);
+  if (!existing) throw new Error('Project billable not found');
+
+  const timestamp = nowISO();
+  const normalizedPatch: Record<string, unknown> = { ...patch };
+  if (typeof normalizedPatch.approved_date === 'string') {
+    normalizedPatch.approved_date = (normalizedPatch.approved_date as string).trim();
+  }
+  if (typeof normalizedPatch.completed_date === 'string') {
+    normalizedPatch.completed_date = (normalizedPatch.completed_date as string).trim();
+  }
+  if (typeof normalizedPatch.paid_date === 'string') {
+    normalizedPatch.paid_date = (normalizedPatch.paid_date as string).trim();
+  }
+
+  const updated: ProjectBillable = ProjectBillableSchema.parse({
+    ...existing,
+    ...(normalizedPatch as typeof patch),
+    approved_date: computeStatusDate('approved', existing, normalizedPatch, timestamp),
+    completed_date: computeStatusDate('completed', existing, normalizedPatch, timestamp),
+    paid_date: computeStatusDate('paid', existing, normalizedPatch, timestamp),
+    updated_at: timestamp
+  });
+
+  const contexts = await fetchBillableUnitContexts(id);
+
+  const statusMeta = [
+    { flag: 'approved_ind' as const, date: 'approved_date' as const },
+    { flag: 'completed_ind' as const, date: 'completed_date' as const },
+    { flag: 'paid_ind' as const, date: 'paid_date' as const }
+  ];
+
+  const unitUpdates: ProjectServiceUnit[] = [];
+  const unitPairs: Array<{ previous: ProjectServiceUnit; next: ProjectServiceUnit; context: UnitContext }>
+    = [];
+
+  contexts.forEach((context) => {
+    const next = { ...context.unit };
+    let changed = false;
+
+    statusMeta.forEach(({ flag, date }) => {
+      const billableFlag = updated[flag];
+      const billableDate = updated[date];
+      const unitFlag = next[flag];
+      const unitDate = next[date];
+
+      if (billableFlag !== unitFlag || (billableFlag && unitDate !== billableDate)) {
+        next[flag] = billableFlag;
+        next[date] = billableFlag
+          ? billableDate && billableDate.length > 0
+            ? billableDate
+            : timestamp
+          : billableDate ?? '';
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      next.updated_at = timestamp;
+      const parsed = ProjectServiceUnitSchema.parse(next);
+      unitUpdates.push(parsed);
+      unitPairs.push({ previous: context.unit, next: parsed, context });
+    }
+  });
+
+  await db.transaction('rw', [db.projectBillables, db.projectServiceUnits], async () => {
+    await db.projectBillables.put(updated);
+    if (unitUpdates.length > 0) {
+      await Promise.all(unitUpdates.map((unit) => db.projectServiceUnits.put(unit)));
+    }
+  });
+
+  await db.projects.update(updated.project_id, { updated_at: timestamp });
+
+  const uniqueParentIds = Array.from(new Set(contexts.map((context) => context.parent.id)));
+  await Promise.all(
+    uniqueParentIds.map((parentId) => {
+      const parent = contexts.find((context) => context.parent.id === parentId)?.parent;
+      return parent
+        ? bumpParentForProjectService(parentId, parent, timestamp)
+        : Promise.resolve();
+    })
+  );
+
+  await queueOutboxMutation('projectBillables', 'update', updated, id);
+
+  await Promise.all(
+    unitUpdates.map((unit) => queueOutboxMutation('projectServiceUnits', 'update', unit, unit.id))
+  );
+
+  await queueProjectTouch(updated.project_id);
+
+  await logBillableStatusEvents(existing, updated);
+
+  await Promise.all(
+    unitPairs.map(({ previous, next, context }) =>
+      logUnitStatusEvents(previous, next, context.parent, context.serviceName)
+    )
+  );
+
+  return {
+    ...updated,
+    units: contexts.map((context) => {
+      const updatedUnit = unitUpdates.find((unit) => unit.id === context.unit.id) ?? context.unit;
+      return {
+        ...updatedUnit,
+        service_id: context.parent.service_id,
+        service_name: context.serviceName
+      } satisfies ProjectBillableUnit;
+    })
+  };
 }
 
 // ---- Project Service Extras ----
@@ -769,6 +1133,28 @@ async function fetchProjectServiceOrThrow(project_service_id: string): Promise<P
   return parent;
 }
 
+type UnitContext = {
+  unit: ProjectServiceUnit;
+  parent: ProjectService;
+  serviceName: string;
+};
+
+async function fetchBillableUnitContexts(billable_id: string): Promise<UnitContext[]> {
+  const units = await db.projectServiceUnits
+    .where('project_billable_id')
+    .equals(billable_id)
+    .toArray();
+  if (units.length === 0) return [];
+
+  return Promise.all(
+    units.map(async (unit) => {
+      const parent = await fetchProjectServiceOrThrow(unit.project_service_id);
+      const serviceName = await resolveServiceName(parent.service_id);
+      return { unit, parent, serviceName } satisfies UnitContext;
+    })
+  );
+}
+
 function computeStatusDate(
   key: StatusKey,
   existing: StatusTrackable,
@@ -942,7 +1328,7 @@ async function logExtraStatusEvents(
 }
 
 async function logStatusIfPromoted(
-  entity: 'project-service' | 'service-unit' | 'service-extra',
+  entity: 'project-service' | 'service-unit' | 'service-extra' | 'project-billable',
   status: StatusKey,
   previous: boolean | undefined,
   next: boolean,
@@ -952,6 +1338,42 @@ async function logStatusIfPromoted(
   if (!previous && next) {
     await recordProjectEvent(project_id, `${entity}.${status}`, note);
   }
+}
+
+async function logBillableStatusEvents(
+  prev: ProjectBillable | undefined,
+  next: ProjectBillable
+) {
+  const label = `${capitalize(next.billable_type)} billable`;
+  await logStatusIfPromoted(
+    'project-billable',
+    'approved',
+    prev?.approved_ind,
+    next.approved_ind,
+    next.project_id,
+    `${label} approved.`
+  );
+  await logStatusIfPromoted(
+    'project-billable',
+    'completed',
+    prev?.completed_ind,
+    next.completed_ind,
+    next.project_id,
+    `${label} completed.`
+  );
+  await logStatusIfPromoted(
+    'project-billable',
+    'paid',
+    prev?.paid_ind,
+    next.paid_ind,
+    next.project_id,
+    `${label} paid.`
+  );
+}
+
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 async function bumpParentForProjectService(

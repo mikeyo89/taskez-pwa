@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, MoreHorizontal, Pencil, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -16,17 +16,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { ProjectServiceWithChildren } from '@/lib/actions/projects';
+import type {
+  ProjectBillableWithUnits,
+  ProjectServiceWithChildren
+} from '@/lib/actions/projects';
 import { useLiveServices } from '@/lib/hooks/useLiveServices';
 import { useProjectDetail } from '@/lib/hooks/useProjectDetail';
 import { useProjectEventsQuery } from '@/lib/hooks/useProjectEventsQuery';
+import { useProjectBillablesQuery } from '@/lib/hooks/useProjectBillablesQuery';
 import { useProjectServicesQuery } from '@/lib/hooks/useProjectServicesQuery';
 import { DeleteProjectDialog, UpdateProjectDialog } from '../form';
 
 import { ProjectEventsTab } from './project-events-tab';
+import { ProjectBillablesTab } from './project-billables-tab';
 import { ProjectServiceDeleteDialog } from './project-service-delete-dialog';
 import { ProjectServiceDetailPanel } from './project-service-detail-panel';
 import { ProjectServiceDialog } from './project-service-dialog';
+import { ProjectBillableDialog } from './project-billable-dialog';
 import { ProjectServicesTab } from './project-services-tab';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -61,6 +67,7 @@ function ProjectDetailContent() {
   const { project, client, loading: detailLoading } = useProjectDetail(projectId);
   const servicesQuery = useProjectServicesQuery(projectId);
   const eventsQuery = useProjectEventsQuery(projectId);
+  const billablesQuery = useProjectBillablesQuery(projectId);
   const { data: allServices } = useLiveServices();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,11 +81,21 @@ function ProjectDetailContent() {
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [projectUpdateOpen, setProjectUpdateOpen] = useState(false);
   const [projectDeleteOpen, setProjectDeleteOpen] = useState(false);
+  const [billableDialogOpen, setBillableDialogOpen] = useState(false);
+  const [billableDialogMode, setBillableDialogMode] = useState<'create' | 'edit'>('create');
+  const [selectedBillable, setSelectedBillable] = useState<ProjectBillableWithUnits | null>(null);
+  const [activeTab, setActiveTab] = useState<'services' | 'billables' | 'events'>('services');
 
   const availableServicesLookup = useMemo(
     () => new Map((allServices ?? []).map((service) => [service.id, service.name])),
     [allServices]
   );
+
+  const availableUnassignedUnits = useMemo(() => {
+    return (servicesQuery.data ?? [])
+      .flatMap((service) => service.units)
+      .filter((unit) => !unit.project_billable_id);
+  }, [servicesQuery.data]);
 
   const activeService = useMemo(() => {
     if (!activeServiceId) return null;
@@ -101,17 +118,22 @@ function ProjectDetailContent() {
   }, [activeServiceId, servicesQuery.data]);
 
   useEffect(() => {
+    if (activeTab !== 'services') {
+      setActiveServiceId(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!project) {
       setProjectUpdateOpen(false);
       setProjectDeleteOpen(false);
+      setBillableDialogOpen(false);
+      setBillableDialogMode('create');
+      setSelectedBillable(null);
     }
   }, [project]);
 
   const projectActionsDisabled = detailLoading || !project;
-
-  const handleProjectSend = () => {
-    if (!project) return;
-  };
 
   const handleProjectUpdate = () => {
     if (!project) return;
@@ -163,6 +185,16 @@ function ProjectDetailContent() {
     setDialogOpen(true);
   };
 
+  const handleBillableCreate = () => {
+    if (availableUnassignedUnits.length === 0) {
+      toast.error('Add service units before creating a billable.');
+      return;
+    }
+    setSelectedBillable(null);
+    setBillableDialogMode('create');
+    setBillableDialogOpen(true);
+  };
+
   const handleModify = (service: ProjectServiceWithChildren) => {
     setSelectedService(service);
     setDialogMode('edit');
@@ -198,6 +230,27 @@ function ProjectDetailContent() {
     setServiceDeleteOpen(open);
   };
 
+  const handleBillableEdit = (billable: ProjectBillableWithUnits) => {
+    setSelectedBillable(billable);
+    setBillableDialogMode('edit');
+    setBillableDialogOpen(true);
+  };
+
+  const handleBillableDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedBillable(null);
+      setBillableDialogMode('create');
+    }
+    setBillableDialogOpen(open);
+  };
+
+  const showFloatingButton = activeTab !== 'events';
+  const floatingButtonDisabled =
+    activeTab === 'billables' && availableUnassignedUnits.length === 0;
+  const floatingButtonLabel =
+    activeTab === 'billables' ? 'Create billable' : 'Link service to project';
+  const floatingButtonClick = activeTab === 'billables' ? handleBillableCreate : handleCreateClick;
+
   return (
     <div className='flex flex-col gap-8 pb-28'>
       <header className='flex flex-col gap-4'>
@@ -222,10 +275,6 @@ function ProjectDetailContent() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-44'>
-              <DropdownMenuItem onClick={handleProjectSend} className='gap-2'>
-                <Send className='h-4 w-4' />
-                Send...
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleProjectUpdate} className='gap-2' disabled={!project}>
                 <Pencil className='h-4 w-4' />
                 Update
@@ -272,9 +321,16 @@ function ProjectDetailContent() {
         transition={{ duration: 0.25 }}
         className='flex flex-col gap-6'
       >
-        <Tabs defaultValue='services' className='flex flex-col gap-4'>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) =>
+            setActiveTab((value as 'services' | 'billables' | 'events') ?? 'services')
+          }
+          className='flex flex-col gap-4'
+        >
           <TabsList>
             <TabsTrigger value='services'>Services</TabsTrigger>
+            <TabsTrigger value='billables'>Billing</TabsTrigger>
             <TabsTrigger value='events'>Events</TabsTrigger>
           </TabsList>
           <TabsContent value='services'>
@@ -283,6 +339,14 @@ function ProjectDetailContent() {
               serviceLookup={availableServicesLookup}
               loading={servicesQuery.isLoading || servicesQuery.isFetching}
               onSelect={handleServiceSelect}
+            />
+          </TabsContent>
+          <TabsContent value='billables'>
+            <ProjectBillablesTab
+              billables={billablesQuery.data ?? []}
+              serviceLookup={availableServicesLookup}
+              loading={billablesQuery.isLoading || billablesQuery.isFetching}
+              onEdit={handleBillableEdit}
             />
           </TabsContent>
           <TabsContent value='events'>
@@ -301,6 +365,16 @@ function ProjectDetailContent() {
         onCompleted={(serviceId) => {
           setActiveServiceId(serviceId);
         }}
+      />
+
+      <ProjectBillableDialog
+        projectId={projectId}
+        services={servicesQuery.data ?? []}
+        serviceLookup={availableServicesLookup}
+        open={billableDialogOpen}
+        mode={billableDialogMode}
+        onOpenChange={handleBillableDialogOpenChange}
+        initialBillable={selectedBillable ?? undefined}
       />
 
       <ProjectServiceDeleteDialog
@@ -325,17 +399,21 @@ function ProjectDetailContent() {
         onOpenChange={setProjectDeleteOpen}
       />
 
-      <Button
-        size='icon-lg'
-        className='fixed bottom-28 right-6 z-40 rounded-full shadow-lg'
-        style={{
-          boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
-        }}
-        aria-label='Link service to project'
-        onClick={handleCreateClick}
-      >
-        <Plus className='h-5 w-5' aria-hidden />
-      </Button>
+      {showFloatingButton && (
+        <Button
+          size='icon-lg'
+          className='fixed bottom-28 right-6 z-40 rounded-full shadow-lg'
+          style={{
+            boxShadow: '0 10px 30px -15px color-mix(in srgb, var(--primary) 55%, transparent)'
+          }}
+          aria-label={floatingButtonLabel}
+          title={floatingButtonLabel}
+          onClick={floatingButtonClick}
+          disabled={floatingButtonDisabled}
+        >
+          <Plus className='h-5 w-5' aria-hidden />
+        </Button>
+      )}
 
       <AnimatePresence>
         {activeServiceId && (
