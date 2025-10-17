@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -22,8 +21,8 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { ChevronsUpDown, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
-import { useMemo, useState, type MouseEvent } from 'react';
+import { ChevronsUpDown, Loader2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -41,19 +40,13 @@ type ProjectServicesTabProps = {
   serviceLookup: Map<string, string>;
   loading?: boolean;
   onSelect: (service: ProjectServiceWithChildren) => void;
-  onModify: (service: ProjectServiceWithChildren) => void;
-  onDelete: (service: ProjectServiceWithChildren) => void;
-  onPrint?: (service: ProjectServiceWithChildren) => void;
 };
 
 export function ProjectServicesTab({
   services,
   serviceLookup,
   loading = false,
-  onSelect,
-  onModify,
-  onDelete,
-  onPrint
+  onSelect
 }: ProjectServicesTabProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'est_completion_date', desc: false }
@@ -108,22 +101,9 @@ export function ProjectServicesTab({
           return a === b ? 0 : a > b ? 1 : -1;
         },
         meta: { className: 'text-right align-middle' }
-      },
-      {
-        id: 'actions',
-        header: () => <span className='sr-only'>Actions</span>,
-        cell: ({ row }) => (
-          <ProjectServiceActions
-            service={row.original}
-            onModify={onModify}
-            onDelete={onDelete}
-            onPrint={onPrint}
-          />
-        ),
-        meta: { className: 'w-0 text-right align-middle' }
       }
     ];
-  }, [serviceLookup, onModify, onDelete, onPrint]);
+  }, [serviceLookup]);
 
   const table = useReactTable({
     data: services,
@@ -239,71 +219,6 @@ export function ProjectServicesTab({
           )}
         </TableBody>
       </Table>
-    </div>
-  );
-}
-
-function ProjectServiceActions({
-  service,
-  onModify,
-  onDelete,
-  onPrint
-}: {
-  service: ProjectServiceWithChildren;
-  onModify: (service: ProjectServiceWithChildren) => void;
-  onDelete: (service: ProjectServiceWithChildren) => void;
-  onPrint?: (service: ProjectServiceWithChildren) => void;
-}) {
-  const handlePrint = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    onPrint?.(service);
-  };
-
-  const handleModify = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    onModify(service);
-  };
-
-  const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    onDelete(service);
-  };
-
-  return (
-    <div className='flex justify-end gap-1 sm:gap-2'>
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon-sm'
-        className='text-muted-foreground hover:text-foreground'
-        onClick={handlePrint}
-        aria-label='Print service'
-        title='Print service'
-      >
-        <Printer className='h-4 w-4' />
-      </Button>
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon-sm'
-        className='text-muted-foreground hover:text-foreground'
-        onClick={handleModify}
-        aria-label='Edit service'
-        title='Edit service'
-      >
-        <Pencil className='h-4 w-4' />
-      </Button>
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon-sm'
-        className='text-destructive hover:text-destructive'
-        onClick={handleDelete}
-        aria-label='Delete service'
-        title='Delete service'
-      >
-        <Trash2 className='h-4 w-4' />
-      </Button>
     </div>
   );
 }

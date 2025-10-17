@@ -215,9 +215,6 @@ function ProjectDetailContent() {
               serviceLookup={availableServicesLookup}
               loading={servicesQuery.isLoading || servicesQuery.isFetching}
               onSelect={handleServiceSelect}
-              onModify={handleModify}
-              onDelete={handleDelete}
-              onPrint={handlePrint}
             />
           </TabsContent>
           <TabsContent value='events'>

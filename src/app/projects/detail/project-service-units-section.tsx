@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -87,6 +87,10 @@ export function ProjectServiceUnitsSection({
 
   const units = unitsQuery.data ?? [];
 
+  const handlePrintClick = (unit: ProjectServiceUnit) => {
+    void unit;
+  };
+
   return (
     <div className='space-y-4'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -131,6 +135,15 @@ export function ProjectServiceUnitsSection({
                   )}
                 </div>
                 <div className='flex shrink-0 items-center gap-1'>
+                  <Button
+                    type='button'
+                    size='icon-sm'
+                    variant='ghost'
+                    className='h-8 w-8'
+                    onClick={() => handlePrintClick(unit)}
+                  >
+                    <Printer className='h-3.5 w-3.5' />
+                  </Button>
                   <Button
                     type='button'
                     size='icon-sm'
@@ -225,6 +238,14 @@ export function ProjectServiceUnitsSection({
                   </TableCell>
                   <TableCell className='text-right'>
                     <div className='flex justify-end gap-2'>
+                      <Button
+                        type='button'
+                        size='icon-sm'
+                        variant='ghost'
+                        onClick={() => handlePrintClick(unit)}
+                      >
+                        <Printer className='h-4 w-4' />
+                      </Button>
                       <Button
                         type='button'
                         size='icon-sm'
