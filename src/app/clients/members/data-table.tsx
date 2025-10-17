@@ -73,14 +73,18 @@ export function MembersTable({ data, loading = false }: MembersTableProps) {
           const member = row.original;
           const fullName = `${member.first_name} ${member.last_name}`;
           return (
-            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[18rem] md:max-w-[24rem]'>
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[22rem]'>
               <Tooltip content={fullName} side='top'>
-                <span className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground hyphens-auto'>
+                <span className='block line-clamp-1 break-words text-sm font-medium leading-tight text-foreground hyphens-auto sm:line-clamp-2'>
                   {fullName}
                 </span>
               </Tooltip>
-              <span className='text-xs text-muted-foreground break-all'>{member.email}</span>
-              <span className='text-xs text-muted-foreground break-words'>{member.phone ?? '-'}</span>
+              <span className='text-xs text-muted-foreground break-all line-clamp-1 sm:line-clamp-2'>
+                {member.email}
+              </span>
+              <span className='text-xs text-muted-foreground break-words line-clamp-1 sm:line-clamp-2'>
+                {member.phone ?? '-'}
+              </span>
             </div>
           );
         },
@@ -237,7 +241,10 @@ export function MembersTable({ data, loading = false }: MembersTableProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn('py-3 text-sm', cell.column.columnDef.meta?.className)}
+                      className={cn(
+                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[20rem] md:max-w-[26rem]',
+                        cell.column.columnDef.meta?.className
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

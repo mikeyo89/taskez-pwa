@@ -64,8 +64,8 @@ export function ProjectServicesTab({
           const entity = row.original;
           const serviceName = serviceLookup.get(entity.service_id) ?? 'Unknown service';
           return (
-            <div className='flex min-w-0 max-w-full flex-col gap-1 sm:max-w-[20rem]'>
-              <span className='line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground'>
+            <div className='flex min-w-0 max-w-[12rem] flex-col gap-1 sm:max-w-[18rem] lg:max-w-[24rem]'>
+              <span className='line-clamp-1 break-words text-sm font-semibold leading-tight text-foreground sm:line-clamp-2'>
                 {serviceName}
               </span>
               <span className='text-xs text-muted-foreground'>
@@ -198,7 +198,7 @@ export function ProjectServicesTab({
                   <TableCell
                     key={cell.id}
                     className={cn(
-                      'py-3 text-sm align-top',
+                      'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[20rem] lg:max-w-[28rem]',
                       cell.column.columnDef.meta?.className
                     )}
                   >

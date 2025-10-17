@@ -62,17 +62,17 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
         cell: ({ row }) => {
           const service = row.original;
           return (
-            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[18rem] md:max-w-[24rem]'>
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[22rem]'>
               <Tooltip content={service.name} side='top'>
                 <span
-                  className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground hyphens-auto'
+                  className='block line-clamp-1 break-words text-sm font-medium leading-tight text-foreground hyphens-auto sm:line-clamp-2'
                   aria-label={service.name}
                 >
                   {service.name}
                 </span>
               </Tooltip>
               {service.description && (
-                <span className='line-clamp-3 break-words text-xs text-muted-foreground hyphens-auto'>
+                <span className='line-clamp-2 break-words text-xs text-muted-foreground hyphens-auto sm:line-clamp-3'>
                   {service.description}
                 </span>
               )}
@@ -219,7 +219,10 @@ export function ServicesTable({ data, loading = false }: ServicesTableProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn('py-3 text-sm', cell.column.columnDef.meta?.className)}
+                      className={cn(
+                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[20rem] md:max-w-[26rem]',
+                        cell.column.columnDef.meta?.className
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

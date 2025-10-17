@@ -219,11 +219,15 @@ export function ProjectServiceUnitsSection({
             ) : units.length ? (
               units.map((unit) => (
                 <TableRow key={unit.id} className='border-border/60'>
-                  <TableCell>
-                    <div className='flex flex-col gap-1'>
-                      <span className='text-sm font-semibold text-foreground'>{unit.title}</span>
+                  <TableCell className='align-top'>
+                    <div className='flex flex-col gap-1 max-w-[12rem] sm:max-w-[18rem] lg:max-w-[24rem]'>
+                      <span className='text-sm font-semibold text-foreground line-clamp-1 sm:line-clamp-2 hyphens-auto'>
+                        {unit.title}
+                      </span>
                       {unit.description && (
-                        <span className='text-xs text-muted-foreground'>{unit.description}</span>
+                        <span className='text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3 hyphens-auto'>
+                          {unit.description}
+                        </span>
                       )}
                     </div>
                   </TableCell>
