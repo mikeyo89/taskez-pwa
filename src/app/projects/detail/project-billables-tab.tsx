@@ -30,14 +30,14 @@ type ProjectBillablesTabProps = {
   billables: ProjectBillableWithUnits[];
   serviceLookup: Map<string, string>;
   loading?: boolean;
-  onEdit: (billable: ProjectBillableWithUnits) => void;
+  onSelect: (billable: ProjectBillableWithUnits) => void;
 };
 
 export function ProjectBillablesTab({
   billables,
   serviceLookup,
   loading = false,
-  onEdit
+  onSelect
 }: ProjectBillablesTabProps) {
   const [filter, setFilter] = useState('');
 
@@ -124,13 +124,13 @@ export function ProjectBillablesTab({
                 <TableRow
                   key={billable.id}
                   className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
-                  onClick={() => onEdit(billable)}
+                  onClick={() => onSelect(billable)}
                   role='button'
                   tabIndex={0}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
-                      onEdit(billable);
+                      onSelect(billable);
                     }
                   }}
                 >

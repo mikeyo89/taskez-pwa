@@ -845,13 +845,14 @@ export async function updateProjectBillable(
       | 'paid_ind'
       | 'paid_date'
     >
-  >
+  > & { service_unit_ids?: string[] }
 ): Promise<ProjectBillableWithUnits> {
   const existing = await db.projectBillables.get(id);
   if (!existing) throw new Error('Project billable not found');
 
   const timestamp = nowISO();
-  const normalizedPatch: Record<string, unknown> = { ...patch };
+  const { service_unit_ids: serviceUnitIds, ...statusPatch } = patch;
+  const normalizedPatch: Record<string, unknown> = { ...statusPatch };
   if (typeof normalizedPatch.approved_date === 'string') {
     normalizedPatch.approved_date = (normalizedPatch.approved_date as string).trim();
   }
@@ -862,16 +863,38 @@ export async function updateProjectBillable(
     normalizedPatch.paid_date = (normalizedPatch.paid_date as string).trim();
   }
 
+  const normalizedUnitIds = serviceUnitIds
+    ? Array.from(
+        new Set(
+          serviceUnitIds.filter((value): value is string => typeof value === 'string' && value.length > 0)
+        )
+      )
+    : undefined;
+
+  if (normalizedUnitIds && normalizedUnitIds.length === 0) {
+    throw new Error('Billable must include at least one service unit');
+  }
+
+  if (normalizedUnitIds && existing.approved_ind) {
+    throw new Error('Cannot modify service units for an approved billable');
+  }
+
   const updated: ProjectBillable = ProjectBillableSchema.parse({
     ...existing,
-    ...(normalizedPatch as typeof patch),
+    ...(normalizedPatch as Partial<ProjectBillable>),
     approved_date: computeStatusDate('approved', existing, normalizedPatch, timestamp),
     completed_date: computeStatusDate('completed', existing, normalizedPatch, timestamp),
     paid_date: computeStatusDate('paid', existing, normalizedPatch, timestamp),
     updated_at: timestamp
   });
 
-  const contexts = await fetchBillableUnitContexts(id);
+  const existingContexts = await fetchBillableUnitContexts(id);
+  let contexts = [...existingContexts];
+  const parentContextMap = new Map<string, ProjectService>();
+  contexts.forEach((context) => {
+    parentContextMap.set(context.parent.id, context.parent);
+  });
+  const impactedParentIds = new Set(contexts.map((context) => context.parent.id));
 
   const statusMeta = [
     { flag: 'approved_ind' as const, date: 'approved_date' as const },
@@ -882,6 +905,86 @@ export async function updateProjectBillable(
   const unitUpdates: ProjectServiceUnit[] = [];
   const unitPairs: Array<{ previous: ProjectServiceUnit; next: ProjectServiceUnit; context: UnitContext }>
     = [];
+
+  if (normalizedUnitIds) {
+    const desiredIds = new Set(normalizedUnitIds);
+    if (desiredIds.size === 0) {
+      throw new Error('Billable must include at least one service unit');
+    }
+
+    const removedContexts = contexts.filter((context) => !desiredIds.has(context.unit.id));
+    removedContexts.forEach((context) => {
+      impactedParentIds.add(context.parent.id);
+      const cleared = ProjectServiceUnitSchema.parse({
+        ...context.unit,
+        project_billable_id: null,
+        updated_at: timestamp
+      });
+      unitUpdates.push(cleared);
+      unitPairs.push({ previous: context.unit, next: cleared, context });
+    });
+
+    contexts = contexts.filter((context) => desiredIds.has(context.unit.id));
+
+    const existingIds = new Set(existingContexts.map((context) => context.unit.id));
+    const addedUnitIds = normalizedUnitIds.filter((unitId) => !existingIds.has(unitId));
+
+    if (addedUnitIds.length > 0) {
+      const addedUnits = await db.projectServiceUnits.bulkGet(addedUnitIds);
+      const missingIds = addedUnitIds.filter((_, index) => !addedUnits[index]);
+      if (missingIds.length > 0) {
+        throw new Error('One or more service units could not be found');
+      }
+
+      const addedContexts = await Promise.all(
+        addedUnits.map(async (unit) => {
+          if (!unit) throw new Error('Service unit not found');
+          if (unit.project_billable_id && unit.project_billable_id !== id) {
+            throw new Error('Service unit already linked to another billable');
+          }
+          const parent = await fetchProjectServiceOrThrow(unit.project_service_id);
+          const serviceName = await resolveServiceName(parent.service_id);
+          parentContextMap.set(parent.id, parent);
+          return { unit, parent, serviceName } satisfies UnitContext;
+        })
+      );
+
+      addedContexts.forEach((context) => {
+        impactedParentIds.add(context.parent.id);
+        const previousUnit = context.unit;
+        const nextUnit = ProjectServiceUnitSchema.parse({
+          ...context.unit,
+          project_billable_id: id,
+          approved_ind: context.unit.approved_ind || updated.approved_ind,
+          approved_date:
+            context.unit.approved_ind || !updated.approved_ind
+              ? context.unit.approved_date
+              : updated.approved_date || timestamp,
+          completed_ind: context.unit.completed_ind || updated.completed_ind,
+          completed_date:
+            context.unit.completed_ind || !updated.completed_ind
+              ? context.unit.completed_date
+              : updated.completed_date || timestamp,
+          paid_ind: context.unit.paid_ind || updated.paid_ind,
+          paid_date:
+            context.unit.paid_ind || !updated.paid_ind
+              ? context.unit.paid_date
+              : updated.paid_date || timestamp,
+          updated_at: timestamp
+        });
+        unitUpdates.push(nextUnit);
+        unitPairs.push({ previous: previousUnit, next: nextUnit, context });
+        contexts.push({ ...context, unit: nextUnit });
+      });
+    }
+
+    contexts.sort((a, b) => {
+      const indexA = normalizedUnitIds.indexOf(a.unit.id);
+      const indexB = normalizedUnitIds.indexOf(b.unit.id);
+      if (indexA === -1 || indexB === -1) return 0;
+      return indexA - indexB;
+    });
+  }
 
   contexts.forEach((context) => {
     const next = { ...context.unit };
@@ -921,13 +1024,15 @@ export async function updateProjectBillable(
 
   await db.projects.update(updated.project_id, { updated_at: timestamp });
 
-  const uniqueParentIds = Array.from(new Set(contexts.map((context) => context.parent.id)));
+  const uniqueParentIds = Array.from(impactedParentIds);
   await Promise.all(
     uniqueParentIds.map((parentId) => {
-      const parent = contexts.find((context) => context.parent.id === parentId)?.parent;
+      const parent =
+        contexts.find((context) => context.parent.id === parentId)?.parent ??
+        parentContextMap.get(parentId);
       return parent
         ? bumpParentForProjectService(parentId, parent, timestamp)
-        : Promise.resolve();
+        : bumpParentForProjectService(parentId, undefined, timestamp);
     })
   );
 

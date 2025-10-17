@@ -82,7 +82,7 @@ function ProjectDetailContent() {
   const [projectUpdateOpen, setProjectUpdateOpen] = useState(false);
   const [projectDeleteOpen, setProjectDeleteOpen] = useState(false);
   const [billableDialogOpen, setBillableDialogOpen] = useState(false);
-  const [billableDialogMode, setBillableDialogMode] = useState<'create' | 'edit'>('create');
+  const [billableDialogMode, setBillableDialogMode] = useState<'create' | 'view' | 'edit'>('create');
   const [selectedBillable, setSelectedBillable] = useState<ProjectBillableWithUnits | null>(null);
   const [activeTab, setActiveTab] = useState<'services' | 'billables' | 'events'>('services');
 
@@ -230,9 +230,9 @@ function ProjectDetailContent() {
     setServiceDeleteOpen(open);
   };
 
-  const handleBillableEdit = (billable: ProjectBillableWithUnits) => {
+  const handleBillableView = (billable: ProjectBillableWithUnits) => {
     setSelectedBillable(billable);
-    setBillableDialogMode('edit');
+    setBillableDialogMode('view');
     setBillableDialogOpen(true);
   };
 
@@ -346,7 +346,7 @@ function ProjectDetailContent() {
               billables={billablesQuery.data ?? []}
               serviceLookup={availableServicesLookup}
               loading={billablesQuery.isLoading || billablesQuery.isFetching}
-              onEdit={handleBillableEdit}
+              onSelect={handleBillableView}
             />
           </TabsContent>
           <TabsContent value='events'>
@@ -375,6 +375,7 @@ function ProjectDetailContent() {
         mode={billableDialogMode}
         onOpenChange={handleBillableDialogOpenChange}
         initialBillable={selectedBillable ?? undefined}
+        onModeChange={setBillableDialogMode}
       />
 
       <ProjectServiceDeleteDialog
