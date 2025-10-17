@@ -114,6 +114,7 @@ export const ProfileSchema = z.object({
   preferred_email: z.union([z.string().email(), z.literal('')]).optional().default(''),
   preferred_phone: z.string().max(60).optional().default(''),
   preferred_color: z.enum(ACCENT_KEYS),
+  notifications_enabled: z.boolean().default(false),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime()
 });

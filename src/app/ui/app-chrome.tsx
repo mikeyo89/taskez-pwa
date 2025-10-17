@@ -1,5 +1,6 @@
 'use client';
 
+import { subscribeUser, unsubscribeUser } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,8 @@ import {
   ArrowLeft,
   BarChart2,
   Bell,
+  BellRing,
+  Check,
   Download,
   LogIn,
   LogOut,
@@ -38,6 +41,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import MobileAppBar from './mobile-app-bar';
 
 type BeforeInstallPromptEvent = Event & {
@@ -52,6 +56,8 @@ declare global {
     beforeinstallprompt: BeforeInstallPromptEvent;
   }
 }
+
+type NotificationPermissionValue = 'default' | 'denied' | 'granted';
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   return (
@@ -245,6 +251,24 @@ type QuickAction = {
   Icon: typeof Settings;
 };
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+
+  if (typeof window === 'undefined' || typeof window.atob !== 'function') {
+    throw new Error('Base64 conversion is only available in the browser environment.');
+  }
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'profile', label: 'Profile', description: 'View and edit your info', Icon: UserRound },
   {
@@ -304,6 +328,136 @@ function ProfileDrawer() {
   const [error, setError] = useState<string | null>(null);
   const [accentUpdating, setAccentUpdating] = useState(false);
   const [formState, setFormState] = useState<ProfileFormState>(() => createEmptyProfile(accent));
+  const [notificationsSupported, setNotificationsSupported] = useState(true);
+  const [notificationsPermission, setNotificationsPermission] =
+    useState<NotificationPermissionValue>('default');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    profile?.notifications_enabled ?? false
+  );
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  useEffect(() => {
+    setNotificationsEnabled(profile?.notifications_enabled ?? false);
+  }, [profile?.notifications_enabled]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setNotificationsSupported(false);
+      return;
+    }
+
+    const supported =
+      'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    setNotificationsSupported(supported);
+
+    if (!supported) {
+      return;
+    }
+
+    setNotificationsPermission(Notification.permission as NotificationPermissionValue);
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        if (cancelled || !existing) {
+          return;
+        }
+
+        setNotificationsEnabled(true);
+        if (!profile?.notifications_enabled) {
+          await saveProfile({ notifications_enabled: true });
+        }
+      } catch (err) {
+        console.error('Failed to synchronize push subscription', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.notifications_enabled, saveProfile]);
+
+  const handleToggleNotifications = useCallback(async () => {
+    if (notificationsLoading) {
+      return;
+    }
+
+    if (!notificationsSupported) {
+      toast.error('Notifications are not supported on this device.');
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast.error('Notifications are unavailable in this context.');
+      return;
+    }
+
+    setNotificationsLoading(true);
+
+    try {
+      if (!notificationsEnabled) {
+        let permission = Notification.permission as NotificationPermissionValue;
+        if (permission === 'default') {
+          permission = await Notification.requestPermission();
+        }
+        setNotificationsPermission(permission);
+
+        if (permission !== 'granted') {
+          toast.error(
+            permission === 'denied'
+              ? 'Notifications are blocked in your browser settings.'
+              : 'Notification permission was not granted.'
+          );
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+          if (!vapidKey) {
+            throw new Error('Push notifications are not configured.');
+          }
+
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey)
+          });
+        }
+
+        await subscribeUser(subscription);
+        await saveProfile({ notifications_enabled: true });
+        setNotificationsEnabled(true);
+        toast.success('Notifications enabled.');
+      } else {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (subscription) {
+          await subscription.unsubscribe();
+        }
+
+        await unsubscribeUser();
+        await saveProfile({ notifications_enabled: false });
+        setNotificationsEnabled(false);
+        toast.success('Notifications disabled.');
+      }
+    } catch (err) {
+      console.error('Failed to toggle notifications', err);
+      const message = err instanceof Error ? err.message : 'Unable to update notifications';
+      toast.error(message);
+    } finally {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setNotificationsPermission(Notification.permission as NotificationPermissionValue);
+      }
+      setNotificationsLoading(false);
+    }
+  }, [notificationsEnabled, notificationsLoading, notificationsSupported, saveProfile]);
 
   const handleSignIn = useCallback(() => {
     void loginWithRedirect();
@@ -504,6 +658,11 @@ function ProfileDrawer() {
                 authLoading={authLoading}
                 onSignIn={handleSignIn}
                 onSignOut={handleSignOut}
+                notificationsEnabled={notificationsEnabled}
+                notificationsSupported={notificationsSupported}
+                notificationsPermission={notificationsPermission}
+                notificationsLoading={notificationsLoading}
+                onToggleNotifications={handleToggleNotifications}
               />
               <ProfilePanel
                 accentPresets={accentPresets}
@@ -535,6 +694,11 @@ type HomePanelProps = {
   authLoading: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
+  notificationsEnabled: boolean;
+  notificationsSupported: boolean;
+  notificationsPermission: NotificationPermissionValue;
+  notificationsLoading: boolean;
+  onToggleNotifications: () => void;
 };
 
 function HomePanel({
@@ -546,7 +710,12 @@ function HomePanel({
   isAuthenticated,
   authLoading,
   onSignIn,
-  onSignOut
+  onSignOut,
+  notificationsEnabled,
+  notificationsSupported,
+  notificationsPermission,
+  notificationsLoading,
+  onToggleNotifications
 }: HomePanelProps) {
   return (
     <div className='flex h-full flex-col overflow-y-auto px-4 pb-6 pt-2'>
@@ -555,28 +724,80 @@ function HomePanel({
         <div className='mt-3 flex flex-col gap-2'>
           {QUICK_ACTIONS.map(({ id, label, description, Icon }) => {
             const isProfile = id === 'profile';
+            const isNotifications = id === 'notifications';
+            const notificationsUnavailable =
+              isNotifications && (!notificationsSupported || notificationsPermission === 'denied');
+            const active = isNotifications ? notificationsEnabled : false;
+            const buttonStyle = isNotifications && active
+              ? {
+                  borderColor: 'color-mix(in srgb, var(--accent) 65%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+                  color: 'var(--accent-foreground)'
+                }
+              : {
+                  borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
+                };
+            const iconStyle = isNotifications && active
+              ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }
+              : { backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)' };
+            const detailText = isNotifications
+              ? !notificationsSupported
+                ? 'Notifications are unavailable on this device'
+                : notificationsPermission === 'denied'
+                  ? 'Enable notifications in your browser settings'
+                  : 'Control alerts and digests'
+              : description;
+            const ActionIcon = isNotifications && active ? BellRing : Icon;
+            const disabled = isNotifications ? notificationsLoading : false;
             return (
               <button
                 key={id}
                 type='button'
-                onClick={isProfile ? onNavigateProfile : undefined}
-                className='flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition hover:border-border hover:shadow-sm'
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
-                  backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
-                }}
+                onClick={
+                  isProfile
+                    ? onNavigateProfile
+                    : isNotifications
+                      ? onToggleNotifications
+                      : undefined
+                }
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition',
+                  !disabled && 'hover:border-border hover:shadow-sm',
+                  notificationsUnavailable && 'cursor-not-allowed opacity-70'
+                )}
+                style={buttonStyle}
+                disabled={disabled}
+                aria-pressed={isNotifications ? active : undefined}
+                aria-busy={isNotifications ? notificationsLoading : undefined}
+                aria-disabled={notificationsUnavailable || undefined}
+                title={isNotifications ? detailText : undefined}
               >
                 <span
                   className='flex h-9 w-9 items-center justify-center rounded-full text-accent-foreground'
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)'
-                  }}
+                  style={iconStyle}
                 >
-                  <Icon className='h-4 w-4' aria-hidden />
+                  {isNotifications && notificationsLoading ? (
+                    <Spinner className='h-4 w-4 text-current' aria-hidden />
+                  ) : (
+                    <ActionIcon className='h-4 w-4' aria-hidden />
+                  )}
                 </span>
-                <div className='flex-1'>
-                  <p className='text-sm font-medium'>{label}</p>
-                  <p className='text-xs text-muted-foreground'>{description}</p>
+                <div className='flex flex-1 items-center gap-3'>
+                  <div className='flex-1'>
+                    <p className='text-sm font-medium'>{label}</p>
+                    <p
+                      className={cn(
+                        'text-xs',
+                        isNotifications && active ? 'text-accent-foreground/80' : 'text-muted-foreground'
+                      )}
+                    >
+                      {detailText}
+                    </p>
+                  </div>
+                  {isNotifications && !notificationsLoading && active ? (
+                    <Check className='h-4 w-4 text-current' aria-hidden />
+                  ) : null}
                 </div>
               </button>
             );
