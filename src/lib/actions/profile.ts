@@ -2,8 +2,8 @@
 
 import { DEFAULT_ACCENT } from '../appearance';
 import { db } from '../db';
-import { queueOutboxMutation } from '../offline/outbox';
 import { ProfileSchema, type Profile } from '../models';
+import { queueOutboxMutation } from '../offline/outbox';
 
 export const PROFILE_ID = 'profile';
 
@@ -11,10 +11,10 @@ export type ProfilePatch = Partial<
   Pick<
     Profile,
     | 'company_name'
-    | 'preferred_name'
-    | 'preferred_email'
-    | 'preferred_phone'
-    | 'preferred_color'
+    | 'contact_name'
+    | 'contact_email'
+    | 'contact_phone'
+    | 'company_color'
     | 'notifications_enabled'
   >
 >;
@@ -30,21 +30,21 @@ function sanitizePatch(patch: ProfilePatch): SanitizedPatch {
     sanitized.company_name = patch.company_name?.trim() ?? '';
   }
 
-  if ('preferred_name' in patch) {
-    sanitized.preferred_name = patch.preferred_name?.trim() ?? '';
+  if ('contact_name' in patch) {
+    sanitized.contact_name = patch.contact_name?.trim() ?? '';
   }
 
-  if ('preferred_email' in patch) {
-    const email = patch.preferred_email?.trim() ?? '';
-    sanitized.preferred_email = email === '' ? '' : email.toLowerCase();
+  if ('contact_email' in patch) {
+    const email = patch.contact_email?.trim() ?? '';
+    sanitized.contact_email = email === '' ? '' : email.toLowerCase();
   }
 
-  if ('preferred_phone' in patch) {
-    sanitized.preferred_phone = patch.preferred_phone?.trim() ?? '';
+  if ('contact_phone' in patch) {
+    sanitized.contact_phone = patch.contact_phone?.trim() ?? '';
   }
 
-  if (patch.preferred_color) {
-    sanitized.preferred_color = patch.preferred_color;
+  if (patch.company_color) {
+    sanitized.company_color = patch.company_color;
   }
 
   if ('notifications_enabled' in patch) {
@@ -67,10 +67,10 @@ export function composeProfile(
     : ProfileSchema.parse({
         id: PROFILE_ID,
         company_name: sanitized.company_name ?? '',
-        preferred_name: sanitized.preferred_name ?? '',
-        preferred_email: sanitized.preferred_email ?? '',
-        preferred_phone: sanitized.preferred_phone ?? '',
-        preferred_color: sanitized.preferred_color ?? DEFAULT_ACCENT,
+        contact_name: sanitized.contact_name ?? '',
+        contact_email: sanitized.contact_email ?? '',
+        contact_phone: sanitized.contact_phone ?? '',
+        company_color: sanitized.company_color ?? DEFAULT_ACCENT,
         notifications_enabled: sanitized.notifications_enabled ?? false,
         created_at: createdAt,
         updated_at: timestamp
@@ -82,7 +82,7 @@ export function composeProfile(
     id: PROFILE_ID,
     created_at: createdAt,
     updated_at: timestamp,
-    preferred_color: sanitized.preferred_color ?? base.preferred_color,
+    company_color: sanitized.company_color ?? base.company_color,
     notifications_enabled: sanitized.notifications_enabled ?? base.notifications_enabled
   });
 }

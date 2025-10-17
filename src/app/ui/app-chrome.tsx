@@ -4,7 +4,6 @@ import { subscribeUser, unsubscribeUser } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import {
   Sheet,
   SheetContent,
@@ -14,12 +13,13 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
+import { Spinner } from '@/components/ui/spinner';
 import { ACCENT_PRESETS, type AccentKey, type AccentPreset } from '@/lib/appearance';
 import { auth0Config } from '@/lib/auth0';
 import { useOutboxSync } from '@/lib/hooks/useOutboxSync';
+import { useProfile, useProfileUpdater } from '@/lib/hooks/useProfile';
 import type { Profile } from '@/lib/models';
 import { cn } from '@/lib/utils';
-import { useProfile, useProfileUpdater } from '@/lib/hooks/useProfile';
 import { useAppearanceStore } from '@/stores/appearance';
 import { useAuth0 } from '@auth0/auth0-react';
 import {
@@ -32,8 +32,8 @@ import {
   LogIn,
   LogOut,
   Moon,
-  Pencil,
   Palette,
+  Pencil,
   Settings,
   Sun,
   UserRound,
@@ -279,38 +279,25 @@ const QUICK_ACTIONS: QuickAction[] = [
     description: 'Control alerts and digests',
     Icon: Bell
   }
-  // {
-  //   id: 'billing',
-  //   label: 'Billing',
-  //   description: 'Update subscriptions and invoices',
-  //   Icon: CreditCard
-  // },
-  // {
-  //   id: 'workspaces',
-  //   label: 'Workspaces',
-  //   description: 'Switch to another workspace',
-  //   Icon: Settings
-  // },
-  // { id: 'support', label: 'Support', description: 'Get help from the Taskez team', Icon: LifeBuoy }
 ];
 
 type DrawerView = 'home' | 'profile';
 
 type ProfileFormState = {
   company_name: string;
-  preferred_name: string;
-  preferred_email: string;
-  preferred_phone: string;
-  preferred_color: AccentKey;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  company_color: AccentKey;
 };
 
 function createEmptyProfile(accent: AccentKey): ProfileFormState {
   return {
     company_name: '',
-    preferred_name: '',
-    preferred_email: '',
-    preferred_phone: '',
-    preferred_color: accent
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    company_color: accent
   };
 }
 
@@ -478,10 +465,10 @@ function ProfileDrawer() {
     if (profile) {
       setFormState({
         company_name: profile.company_name,
-        preferred_name: profile.preferred_name,
-        preferred_email: profile.preferred_email,
-        preferred_phone: profile.preferred_phone,
-        preferred_color: profile.preferred_color
+        contact_name: profile.contact_name,
+        contact_email: profile.contact_email,
+        contact_phone: profile.contact_phone,
+        company_color: profile.company_color
       });
     } else {
       setFormState(createEmptyProfile(accent));
@@ -507,17 +494,17 @@ function ProfileDrawer() {
     if (!hydrated) {
       return;
     }
-    if (profile?.preferred_color && profile.preferred_color !== accent) {
-      setAccent(profile.preferred_color);
+    if (profile?.company_color && profile.company_color !== accent) {
+      setAccent(profile.company_color);
     }
-  }, [accent, hydrated, profile?.preferred_color, setAccent]);
+  }, [accent, hydrated, profile?.company_color, setAccent]);
 
-  const handleFormChange = useCallback(<K extends keyof ProfileFormState>(
-    key: K,
-    value: ProfileFormState[K]
-  ) => {
-    setFormState((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const handleFormChange = useCallback(
+    <K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]) => {
+      setFormState((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   const handleNavigateProfile = useCallback(() => {
     setActiveView('profile');
@@ -548,7 +535,7 @@ function ProfileDrawer() {
     setError(null);
     try {
       const updated = await saveProfile(formState);
-      setAccent(updated.preferred_color);
+      setAccent(updated.company_color);
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to save profile', err);
@@ -560,22 +547,22 @@ function ProfileDrawer() {
 
   const handleAccentSelect = useCallback(
     async (nextAccent: AccentKey) => {
-      if (nextAccent === accent && profile?.preferred_color === nextAccent) {
+      if (nextAccent === accent && profile?.company_color === nextAccent) {
         return;
       }
       const previousAccent = accent;
       setAccent(nextAccent);
       setAccentUpdating(true);
       try {
-        await saveProfile({ preferred_color: nextAccent });
+        await saveProfile({ company_color: nextAccent });
       } catch (err) {
-        console.error('Failed to update preferred color', err);
+        console.error('Failed to update contact color', err);
         setAccent(previousAccent);
       } finally {
         setAccentUpdating(false);
       }
     },
-    [accent, profile?.preferred_color, saveProfile, setAccent]
+    [accent, profile?.company_color, saveProfile, setAccent]
   );
 
   return (
@@ -648,7 +635,9 @@ function ProfileDrawer() {
           <div className='relative flex-1 overflow-hidden'>
             <div
               className='grid h-full w-[200%] grid-cols-2 transition-transform duration-500 ease-in-out'
-              style={{ transform: activeView === 'profile' ? 'translateX(-50%)' : 'translateX(0%)' }}
+              style={{
+                transform: activeView === 'profile' ? 'translateX(-50%)' : 'translateX(0%)'
+              }}
             >
               <HomePanel
                 accent={accent}
@@ -722,7 +711,9 @@ function HomePanel({
   return (
     <div className='flex h-full flex-col overflow-y-auto px-4 pb-6 pt-2'>
       <section>
-        <h2 className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>Quick actions</h2>
+        <h2 className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>
+          Quick actions
+        </h2>
         <div className='mt-3 flex flex-col gap-2'>
           {QUICK_ACTIONS.map(({ id, label, description, Icon }) => {
             const isProfile = id === 'profile';
@@ -730,25 +721,27 @@ function HomePanel({
             const notificationsUnavailable =
               isNotifications && (!notificationsSupported || notificationsPermission === 'denied');
             const active = isNotifications ? notificationsEnabled : false;
-            const buttonStyle = isNotifications && active
-              ? {
-                  borderColor: 'color-mix(in srgb, var(--accent) 65%, transparent)',
-                  backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-                  color: 'var(--accent-foreground)'
-                }
-              : {
-                  borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
-                  backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
-                };
-            const iconStyle = isNotifications && active
-              ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }
-              : { backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)' };
+            const buttonStyle =
+              isNotifications && active
+                ? {
+                    borderColor: 'color-mix(in srgb, var(--accent) 65%, transparent)',
+                    backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+                    color: 'var(--accent-foreground)'
+                  }
+                : {
+                    borderColor: 'color-mix(in srgb, var(--border) 65%, transparent)',
+                    backgroundColor: 'color-mix(in srgb, var(--background) 92%, transparent)'
+                  };
+            const iconStyle =
+              isNotifications && active
+                ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }
+                : { backgroundColor: 'color-mix(in srgb, var(--accent) 18%, transparent)' };
             const detailText = isNotifications
               ? !notificationsSupported
                 ? 'Notifications are unavailable on this device'
                 : notificationsPermission === 'denied'
-                  ? 'Enable notifications in your browser settings'
-                  : 'Control alerts and digests'
+                ? 'Enable notifications in your browser settings'
+                : 'Control alerts and digests'
               : description;
             const ActionIcon = isNotifications && active ? BellRing : Icon;
             const disabled = isNotifications ? notificationsLoading : false;
@@ -760,8 +753,8 @@ function HomePanel({
                   isProfile
                     ? onNavigateProfile
                     : isNotifications
-                      ? onToggleNotifications
-                      : undefined
+                    ? onToggleNotifications
+                    : undefined
                 }
                 className={cn(
                   'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition',
@@ -791,7 +784,9 @@ function HomePanel({
                     <p
                       className={cn(
                         'text-xs',
-                        isNotifications && active ? 'text-accent-foreground/80' : 'text-muted-foreground'
+                        isNotifications && active
+                          ? 'text-accent-foreground/80'
+                          : 'text-muted-foreground'
                       )}
                     >
                       {detailText}
@@ -881,7 +876,13 @@ type AccentOptionButtonProps = {
   trailing?: ReactNode;
 };
 
-function AccentOptionButton({ preset, selected, onSelect, disabled, trailing }: AccentOptionButtonProps) {
+function AccentOptionButton({
+  preset,
+  selected,
+  onSelect,
+  disabled,
+  trailing
+}: AccentOptionButtonProps) {
   return (
     <button
       type='button'
@@ -939,7 +940,7 @@ function ProfilePanel({
   profile,
   loading
 }: ProfilePanelProps) {
-  const selectedColor = profile?.preferred_color ?? formState.preferred_color;
+  const selectedColor = profile?.company_color ?? formState.company_color;
   const colorPreset = accentPresets.find((preset) => preset.id === selectedColor);
 
   return (
@@ -962,11 +963,11 @@ function ProfilePanel({
               />
             </div>
             <div className='space-y-1'>
-              <Label htmlFor='profile-preferred-name'>Contact name</Label>
+              <Label htmlFor='profile-contact-name'>Contact name</Label>
               <Input
-                id='profile-preferred-name'
-                value={formState.preferred_name}
-                onChange={(event) => onFormChange('preferred_name', event.target.value)}
+                id='profile-contact-name'
+                value={formState.contact_name}
+                onChange={(event) => onFormChange('contact_name', event.target.value)}
                 placeholder='Jordan'
                 autoComplete='name'
               />
@@ -976,8 +977,8 @@ function ProfilePanel({
               <Input
                 id='profile-email'
                 type='email'
-                value={formState.preferred_email}
-                onChange={(event) => onFormChange('preferred_email', event.target.value)}
+                value={formState.contact_email}
+                onChange={(event) => onFormChange('contact_email', event.target.value)}
                 placeholder='jordan@taskez.com'
                 autoComplete='email'
               />
@@ -986,8 +987,8 @@ function ProfilePanel({
               <Label htmlFor='profile-phone'>Contact phone</Label>
               <Input
                 id='profile-phone'
-                value={formState.preferred_phone}
-                onChange={(event) => onFormChange('preferred_phone', event.target.value)}
+                value={formState.contact_phone}
+                onChange={(event) => onFormChange('contact_phone', event.target.value)}
                 placeholder='(555) 123-4567'
                 autoComplete='tel'
               />
@@ -997,13 +998,13 @@ function ProfilePanel({
               <p className='text-xs text-muted-foreground'>Used to highlight interface accents.</p>
               <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3'>
                 {accentPresets.map((preset) => {
-                  const selected = formState.preferred_color === preset.id;
+                  const selected = formState.company_color === preset.id;
                   return (
                     <AccentOptionButton
                       key={preset.id}
                       preset={preset}
                       selected={selected}
-                      onSelect={(accentId) => onFormChange('preferred_color', accentId)}
+                      onSelect={(accentId) => onFormChange('company_color', accentId)}
                     />
                   );
                 })}
@@ -1020,24 +1021,27 @@ function ProfilePanel({
               )}
             </ProfileField>
             <ProfileField label='Contact name'>
-              {profile?.preferred_name ? (
-                profile.preferred_name
+              {profile?.contact_name ? (
+                profile.contact_name
               ) : (
                 <span className='text-muted-foreground'>Share what you like to be called</span>
               )}
             </ProfileField>
             <ProfileField label='Contact email'>
-              {profile?.preferred_email ? (
-                <a href={`mailto:${profile.preferred_email}`} className='underline-offset-4 hover:underline'>
-                  {profile.preferred_email}
+              {profile?.contact_email ? (
+                <a
+                  href={`mailto:${profile.contact_email}`}
+                  className='underline-offset-4 hover:underline'
+                >
+                  {profile.contact_email}
                 </a>
               ) : (
                 <span className='text-muted-foreground'>Add an email for notifications</span>
               )}
             </ProfileField>
             <ProfileField label='Contact phone'>
-              {profile?.preferred_phone ? (
-                profile.preferred_phone
+              {profile?.contact_phone ? (
+                profile.contact_phone
               ) : (
                 <span className='text-muted-foreground'>Add a phone number</span>
               )}
@@ -1085,7 +1089,9 @@ function ProfilePanel({
 function ProfileField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>{label}</p>
+      <p className='text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground'>
+        {label}
+      </p>
       <div className='mt-1 text-sm text-foreground'>{children}</div>
     </div>
   );

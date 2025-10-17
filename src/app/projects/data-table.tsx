@@ -40,6 +40,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
   cloneElement,
   isValidElement,
@@ -50,7 +51,6 @@ import {
   type MouseEvent,
   type ReactElement
 } from 'react';
-import { useRouter } from 'next/navigation';
 
 import { DeleteProjectDialog, UpdateProjectDialog } from './form';
 
@@ -121,6 +121,7 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
         ),
         cell: ({ row }) => {
           const project = row.original;
+          const clientName = clientLookup.get(project.client_id) ?? 'Unknown client';
           return (
             <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[24rem]'>
               <span
@@ -134,13 +135,8 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
                   {project.description}
                 </span>
               )}
-              <span
-                className='text-xs text-muted-foreground truncate'
-                title={String(project.budget ?? '')}
-              >
-                {typeof project.budget === 'number'
-                  ? currencyFormatter.format(project.budget)
-                  : 'Budget pending'}
+              <span className='line-clamp-2 break-words text-xs text-muted-foreground hyphens-auto sm:line-clamp-3'>
+                {clientName}
               </span>
             </div>
           );
@@ -159,11 +155,24 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
             <ChevronsUpDown className='h-3.5 w-3.5 opacity-60' />
           </button>
         ),
-        cell: ({ row }) => (
-          <span className='text-xs text-muted-foreground'>
-            {formatDate(row.original.est_completion_date)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const project = row.original;
+          return (
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[24rem]'>
+              <span className='line-clamp-1 break-words text-sm font-semibold leading-tight text-foreground hyphens-auto sm:line-clamp-2'>
+                {formatDate(row.original.est_completion_date)}
+              </span>
+              <span
+                className='text-xs text-muted-foreground truncate'
+                title={String(project.budget ?? '')}
+              >
+                {typeof project.budget === 'number'
+                  ? currencyFormatter.format(project.budget)
+                  : 'Budget pending'}
+              </span>
+            </div>
+          );
+        },
         sortingFn: (rowA, rowB, columnId) => {
           const a = new Date(rowA.getValue<string>(columnId)).getTime();
           const b = new Date(rowB.getValue<string>(columnId)).getTime();
@@ -172,7 +181,7 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
         meta: { className: 'text-right align-middle' }
       }
     ];
-  }, []);
+  }, [clientLookup]);
 
   const table = useReactTable({
     data: filteredData,
@@ -330,13 +339,13 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
                     className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
                   >
                     {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[22rem] md:max-w-[28rem]',
-                        cell.column.columnDef.meta?.className
-                      )}
-                    >
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[22rem] md:max-w-[28rem]',
+                          cell.column.columnDef.meta?.className
+                        )}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

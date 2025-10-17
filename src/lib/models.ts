@@ -134,7 +134,7 @@ export const ProfileSchema = z.object({
     .optional()
     .default(''),
   contact_phone: z.string().max(60).optional().default(''),
-  contact_color: z.enum(ACCENT_KEYS),
+  company_color: z.enum(ACCENT_KEYS),
   notifications_enabled: z.boolean().default(false),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),

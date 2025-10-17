@@ -94,7 +94,7 @@ export function AddProjectDialog({ clients }: AddProjectDialogProps) {
         completed_date: ''
       });
       toast.success('Project created');
-      event.currentTarget.reset();
+      event.currentTarget?.reset();
       setOpen(false);
     } catch (error) {
       console.error(error);
