@@ -5,14 +5,10 @@ export type Auth0Config = {
   appUrl: string;
 };
 
-const domain =
-  process.env.NEXT_PUBLIC_AUTH0_DOMAIN ?? process.env.VITE_APP_AUTH0_DOMAIN ?? '';
-const clientId =
-  process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? process.env.VITE_APP_AUTH0_CLIENT_ID ?? '';
-const audience =
-  process.env.NEXT_PUBLIC_AUTH0_AUDIENCE ?? process.env.VITE_APP_AUTH0_AUDIENCE;
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? 'http://localhost:3000';
+const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN ?? '';
+const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? '';
+const audience = process.env.NEXT_PUBLIC_AUTH0_AUDIENCE ?? '';
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
 if (!domain) {
   throw new Error('Missing Auth0 domain configuration');

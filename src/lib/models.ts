@@ -128,10 +128,13 @@ export type ProjectServiceExtra = z.infer<typeof ProjectServiceExtraSchema>;
 export const ProfileSchema = z.object({
   id: z.string(),
   company_name: z.string().max(120).optional().default(''),
-  preferred_name: z.string().max(120).optional().default(''),
-  preferred_email: z.union([z.string().email(), z.literal('')]).optional().default(''),
-  preferred_phone: z.string().max(60).optional().default(''),
-  preferred_color: z.enum(ACCENT_KEYS),
+  contact_name: z.string().max(120).optional().default(''),
+  contact_email: z
+    .union([z.email(), z.literal('')])
+    .optional()
+    .default(''),
+  contact_phone: z.string().max(60).optional().default(''),
+  contact_color: z.enum(ACCENT_KEYS),
   notifications_enabled: z.boolean().default(false),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
@@ -159,7 +162,7 @@ export const OutboxEntitySchema = z.enum([
 export type OutboxEntity = z.infer<typeof OutboxEntitySchema>;
 
 export const OutboxEntrySchema = z.object({
-  op_id: z.string().uuid(),
+  op_id: z.uuid(),
   entity: OutboxEntitySchema,
   entity_id: z.string(),
   action: OutboxActionSchema,
