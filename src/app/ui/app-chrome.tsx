@@ -739,7 +739,7 @@ function ProfilePanel({
               />
             </div>
             <div className='space-y-1'>
-              <Label htmlFor='profile-preferred-name'>Preferred name</Label>
+              <Label htmlFor='profile-preferred-name'>Contact name</Label>
               <Input
                 id='profile-preferred-name'
                 value={formState.preferred_name}
@@ -749,7 +749,7 @@ function ProfilePanel({
               />
             </div>
             <div className='space-y-1'>
-              <Label htmlFor='profile-email'>Preferred email</Label>
+              <Label htmlFor='profile-email'>Contact email</Label>
               <Input
                 id='profile-email'
                 type='email'
@@ -760,7 +760,7 @@ function ProfilePanel({
               />
             </div>
             <div className='space-y-1'>
-              <Label htmlFor='profile-phone'>Preferred phone</Label>
+              <Label htmlFor='profile-phone'>Contact phone</Label>
               <Input
                 id='profile-phone'
                 value={formState.preferred_phone}
@@ -770,7 +770,7 @@ function ProfilePanel({
               />
             </div>
             <div>
-              <p className='text-sm font-medium'>Preferred color</p>
+              <p className='text-sm font-medium'>Company theme</p>
               <p className='text-xs text-muted-foreground'>Used to highlight interface accents.</p>
               <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3'>
                 {accentPresets.map((preset) => {
@@ -781,11 +781,6 @@ function ProfilePanel({
                       preset={preset}
                       selected={selected}
                       onSelect={(accentId) => onFormChange('preferred_color', accentId)}
-                      trailing={
-                        selected ? (
-                          <span className='text-xs uppercase tracking-wide text-muted-foreground'>Selected</span>
-                        ) : null
-                      }
                     />
                   );
                 })}
@@ -801,14 +796,14 @@ function ProfilePanel({
                 <span className='text-muted-foreground'>Add your company name</span>
               )}
             </ProfileField>
-            <ProfileField label='Preferred name'>
+            <ProfileField label='Contact name'>
               {profile?.preferred_name ? (
                 profile.preferred_name
               ) : (
                 <span className='text-muted-foreground'>Share what you like to be called</span>
               )}
             </ProfileField>
-            <ProfileField label='Preferred email'>
+            <ProfileField label='Contact email'>
               {profile?.preferred_email ? (
                 <a href={`mailto:${profile.preferred_email}`} className='underline-offset-4 hover:underline'>
                   {profile.preferred_email}
@@ -817,14 +812,14 @@ function ProfilePanel({
                 <span className='text-muted-foreground'>Add an email for notifications</span>
               )}
             </ProfileField>
-            <ProfileField label='Preferred phone'>
+            <ProfileField label='Contact phone'>
               {profile?.preferred_phone ? (
                 profile.preferred_phone
               ) : (
                 <span className='text-muted-foreground'>Add a phone number</span>
               )}
             </ProfileField>
-            <ProfileField label='Preferred color'>
+            <ProfileField label='Company theme'>
               <div className='flex items-center gap-3'>
                 <span
                   className='h-5 w-5 rounded-full border'
