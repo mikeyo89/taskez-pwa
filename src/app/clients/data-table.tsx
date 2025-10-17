@@ -70,17 +70,17 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
         cell: ({ row }) => {
           const client = row.original;
           return (
-            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[18rem] md:max-w-[24rem]'>
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[22rem]'>
               <Tooltip content={client.name} side='top'>
                 <span
-                  className='block line-clamp-2 break-words text-sm font-medium leading-tight text-foreground hyphens-auto'
+                  className='block line-clamp-1 break-words text-sm font-medium leading-tight text-foreground hyphens-auto sm:line-clamp-2'
                   aria-label={client.name}
                 >
                   {client.name}
                 </span>
               </Tooltip>
               {client.description && (
-                <span className='line-clamp-3 break-words text-xs text-muted-foreground hyphens-auto'>
+                <span className='line-clamp-2 break-words text-xs text-muted-foreground hyphens-auto sm:line-clamp-3'>
                   {client.description}
                 </span>
               )}
@@ -228,7 +228,7 @@ export function ClientsTable({ data, loading = false }: ClientsTableProps) {
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        'py-3 text-sm align-top max-w-[22rem] overflow-hidden',
+                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[20rem] md:max-w-[26rem]',
                         cell.column.columnDef.meta?.className
                       )}
                     >

@@ -122,15 +122,15 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
         cell: ({ row }) => {
           const project = row.original;
           return (
-            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[18rem] md:max-w-[24rem]'>
+            <div className='flex w-full min-w-0 flex-col gap-1 max-w-[12rem] sm:max-w-[16rem] md:max-w-[24rem]'>
               <span
-                className='line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground hyphens-auto'
+                className='line-clamp-1 break-words text-sm font-semibold leading-tight text-foreground hyphens-auto sm:line-clamp-2'
                 title={project.title}
               >
                 {project.title}
               </span>
               {project.description && (
-                <span className='line-clamp-3 break-words text-xs text-muted-foreground hyphens-auto'>
+                <span className='line-clamp-2 break-words text-xs text-muted-foreground hyphens-auto sm:line-clamp-3'>
                   {project.description}
                 </span>
               )}
@@ -330,13 +330,13 @@ export function ProjectsTable({ data, clients, loading = false }: ProjectsTableP
                     className='cursor-pointer border-b border-border/60 transition hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          'py-3 text-sm align-top max-w-[22rem] overflow-hidden',
-                          cell.column.columnDef.meta?.className
-                        )}
-                      >
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        'py-3 text-sm align-top max-w-[14rem] overflow-hidden sm:max-w-[22rem] md:max-w-[28rem]',
+                        cell.column.columnDef.meta?.className
+                      )}
+                    >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
