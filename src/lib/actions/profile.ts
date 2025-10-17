@@ -2,6 +2,7 @@
 
 import { DEFAULT_ACCENT } from '../appearance';
 import { db } from '../db';
+import { queueOutboxMutation } from '../offline/outbox';
 import { ProfileSchema, type Profile } from '../models';
 
 export const PROFILE_ID = 'profile';
@@ -91,6 +92,7 @@ export async function upsertProfile(patch: ProfilePatch): Promise<Profile> {
   const now = nowISO();
   const profile = composeProfile(existing ?? undefined, patch, now);
   await db.profiles.put(profile);
+  await queueOutboxMutation('profiles', existing ? 'update' : 'create', profile, PROFILE_ID);
   return profile;
 }
 

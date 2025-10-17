@@ -2,6 +2,7 @@
 
 import Dexie from 'dexie';
 import { db } from '../db';
+import { queueOutboxMutation } from '../offline/outbox';
 import {
   ProjectEventSchema,
   ProjectSchema,
@@ -16,6 +17,30 @@ import {
 } from '../models';
 
 const nowISO = () => new Date().toISOString();
+
+const touchKey = (entity: string, id: string) => `${entity}:${id}:touch`;
+
+async function queueProjectTouch(project_id: string) {
+  await queueOutboxMutation('projects', 'update', { id: project_id }, project_id, {
+    idempotencyKey: touchKey('projects', project_id)
+  });
+}
+
+async function queueServiceTouch(service_id: string) {
+  await queueOutboxMutation('services', 'update', { id: service_id }, service_id, {
+    idempotencyKey: touchKey('services', service_id)
+  });
+}
+
+async function queueProjectServiceTouch(project_service_id: string) {
+  await queueOutboxMutation(
+    'projectServices',
+    'update',
+    { id: project_service_id },
+    project_service_id,
+    { idempotencyKey: touchKey('projectServices', project_service_id) }
+  );
+}
 
 // ---- Projects ----
 export async function createProject(input: {
@@ -41,6 +66,7 @@ export async function createProject(input: {
     updated_at: timestamp
   });
   await db.projects.add(entity);
+  await queueOutboxMutation('projects', 'create', entity, entity.id);
   await recordProjectEvent(entity.id, 'project.created', `Project "${entity.title}" created.`);
   await logProjectCompletionEvent(undefined, entity);
   return entity;
@@ -83,10 +109,17 @@ export async function updateProject(
   });
   await db.projects.put(updated);
   await logProjectCompletionEvent(existing, updated);
+  await queueOutboxMutation('projects', 'update', updated, id);
   return updated;
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  let existingProject: Project | undefined;
+  const deletedEventIds: string[] = [];
+  const deletedServiceIds: string[] = [];
+  const deletedUnitIds: string[] = [];
+  const deletedExtraIds: string[] = [];
+
   await db.transaction(
     'rw',
     [
@@ -97,18 +130,62 @@ export async function deleteProject(id: string): Promise<void> {
       db.projectServiceExtras
     ],
     async () => {
-      const existing = await db.projects.get(id);
-      if (!existing) return;
+      existingProject = await db.projects.get(id);
+      if (!existingProject) return;
+
+      const events = await db.projectEvents.where('project_id').equals(id).toArray();
+      deletedEventIds.push(...events.map((event) => event.id));
       await db.projectEvents.where('project_id').equals(id).delete();
+
       const services = await db.projectServices.where('project_id').equals(id).toArray();
       if (services.length > 0) {
+        deletedServiceIds.push(...services.map((service) => service.id));
         const serviceIds = services.map((service) => service.id);
+
+        const units = await db.projectServiceUnits
+          .where('project_service_id')
+          .anyOf(serviceIds)
+          .toArray();
+        deletedUnitIds.push(...units.map((unit) => unit.id));
         await db.projectServiceUnits.where('project_service_id').anyOf(serviceIds).delete();
+
+        const extras = await db.projectServiceExtras
+          .where('project_service_id')
+          .anyOf(serviceIds)
+          .toArray();
+        deletedExtraIds.push(...extras.map((extra) => extra.id));
         await db.projectServiceExtras.where('project_service_id').anyOf(serviceIds).delete();
       }
+
       await db.projectServices.where('project_id').equals(id).delete();
       await db.projects.delete(id);
     }
+  );
+
+  if (!existingProject) return;
+
+  await queueOutboxMutation('projects', 'delete', { id }, id);
+  await Promise.all([
+    ...deletedEventIds.map((eventId) =>
+      queueOutboxMutation('projectEvents', 'delete', { id: eventId, project_id: id }, eventId)
+    ),
+    ...deletedServiceIds.map((serviceId) =>
+      queueOutboxMutation('projectServices', 'delete', { id: serviceId, project_id: id }, serviceId)
+    ),
+    ...deletedUnitIds.map((unitId) =>
+      queueOutboxMutation('projectServiceUnits', 'delete', { id: unitId }, unitId)
+    ),
+    ...deletedExtraIds.map((extraId) =>
+      queueOutboxMutation('projectServiceExtras', 'delete', { id: extraId }, extraId)
+    )
+  ]);
+
+  await queueOutboxMutation(
+    'clients',
+    'update',
+    { id: existingProject.client_id },
+    existingProject.client_id,
+    { idempotencyKey: touchKey('clients', existingProject.client_id) }
   );
 }
 
@@ -142,6 +219,8 @@ export async function addProjectEvent(
   });
   await db.projectEvents.add(entity);
   await db.projects.update(project_id, { updated_at: nowISO() });
+  await queueOutboxMutation('projectEvents', 'create', entity, entity.id);
+  await queueProjectTouch(project_id);
   return entity;
 }
 
@@ -168,6 +247,8 @@ export async function updateProjectEvent(
   });
   await db.projectEvents.put(updated);
   await db.projects.update(existing.project_id, { updated_at: nowISO() });
+  await queueOutboxMutation('projectEvents', 'update', updated, id);
+  await queueProjectTouch(existing.project_id);
   return updated;
 }
 
@@ -176,6 +257,8 @@ export async function deleteProjectEvent(id: string): Promise<void> {
   await db.projectEvents.delete(id);
   if (existing) {
     await db.projects.update(existing.project_id, { updated_at: nowISO() });
+    await queueOutboxMutation('projectEvents', 'delete', { id }, id);
+    await queueProjectTouch(existing.project_id);
   }
 }
 
@@ -217,6 +300,9 @@ export async function createProjectService(input: {
     db.projects.update(input.project_id, { updated_at: timestamp }),
     db.services.update(input.service_id, { updated_at: timestamp })
   ]);
+  await queueOutboxMutation('projectServices', 'create', entity, entity.id);
+  await queueProjectTouch(input.project_id);
+  await queueServiceTouch(input.service_id);
   const serviceName = await resolveServiceName(input.service_id);
   await recordProjectEvent(
     input.project_id,
@@ -312,6 +398,12 @@ export async function updateProjectService(
     db.projects.update(updated.project_id, { updated_at: timestamp }),
     db.services.update(updated.service_id, { updated_at: timestamp })
   ]);
+  await queueOutboxMutation('projectServices', 'update', updated, id);
+  await queueProjectTouch(updated.project_id);
+  await queueServiceTouch(updated.service_id);
+  if (existing.service_id !== updated.service_id) {
+    await queueServiceTouch(existing.service_id);
+  }
   const serviceName = await resolveServiceName(updated.service_id);
   await logServiceStatusEvents(existing, updated, serviceName);
   return updated;
@@ -319,6 +411,8 @@ export async function updateProjectService(
 
 export async function deleteProjectService(id: string): Promise<void> {
   let context: { project_id: string; service_id: string } | undefined;
+  const unitIds: string[] = [];
+  const extraIds: string[] = [];
   await db.transaction(
     'rw',
     [db.projectServices, db.projectServiceUnits, db.projectServiceExtras, db.projects, db.services],
@@ -326,7 +420,11 @@ export async function deleteProjectService(id: string): Promise<void> {
       const existing = await db.projectServices.get(id);
       if (!existing) return;
       context = { project_id: existing.project_id, service_id: existing.service_id };
+      const units = await db.projectServiceUnits.where('project_service_id').equals(id).toArray();
+      unitIds.push(...units.map((unit) => unit.id));
       await db.projectServiceUnits.where('project_service_id').equals(id).delete();
+      const extras = await db.projectServiceExtras.where('project_service_id').equals(id).toArray();
+      extraIds.push(...extras.map((extra) => extra.id));
       await db.projectServiceExtras.where('project_service_id').equals(id).delete();
       await db.projectServices.delete(id);
       const timestamp = nowISO();
@@ -343,6 +441,17 @@ export async function deleteProjectService(id: string): Promise<void> {
       'project-service.deleted',
       `${serviceName} removed from project.`
     );
+    await queueOutboxMutation('projectServices', 'delete', { id }, id);
+    await Promise.all([
+      ...unitIds.map((unitId) =>
+        queueOutboxMutation('projectServiceUnits', 'delete', { id: unitId }, unitId)
+      ),
+      ...extraIds.map((extraId) =>
+        queueOutboxMutation('projectServiceExtras', 'delete', { id: extraId }, extraId)
+      )
+    ]);
+    await queueProjectTouch(context.project_id);
+    await queueServiceTouch(context.service_id);
   }
 }
 
@@ -385,6 +494,7 @@ export async function addProjectServiceUnit(
     updated_at: timestamp
   });
   await db.projectServiceUnits.add(entity);
+  await queueOutboxMutation('projectServiceUnits', 'create', entity, entity.id);
   await bumpParentForProjectService(project_service_id, parent, timestamp);
   const serviceName = await resolveServiceName(parent.service_id);
   await recordProjectEvent(
@@ -464,6 +574,7 @@ export async function updateProjectServiceUnit(
   });
   await db.projectServiceUnits.put(updated);
   await bumpParentForProjectService(existing.project_service_id, parent, timestamp);
+  await queueOutboxMutation('projectServiceUnits', 'update', updated, id);
   const serviceName = await resolveServiceName(parent.service_id);
   await logUnitStatusEvents(existing, updated, parent, serviceName);
   return updated;
@@ -481,6 +592,7 @@ export async function deleteProjectServiceUnit(id: string): Promise<void> {
       `Unit "${existing.title}" removed from ${serviceName}.`
     );
     await bumpParentForProjectService(existing.project_service_id, parent);
+    await queueOutboxMutation('projectServiceUnits', 'delete', { id }, id);
   }
 }
 
@@ -522,6 +634,7 @@ export async function addProjectServiceExtra(
     updated_at: timestamp
   });
   await db.projectServiceExtras.add(entity);
+  await queueOutboxMutation('projectServiceExtras', 'create', entity, entity.id);
   await bumpParentForProjectService(project_service_id, parent, timestamp);
   const serviceName = await resolveServiceName(parent.service_id);
   await recordProjectEvent(
@@ -599,6 +712,7 @@ export async function updateProjectServiceExtra(
   });
   await db.projectServiceExtras.put(updated);
   await bumpParentForProjectService(existing.project_service_id, parent, timestamp);
+  await queueOutboxMutation('projectServiceExtras', 'update', updated, id);
   const serviceName = await resolveServiceName(parent.service_id);
   await logExtraStatusEvents(existing, updated, parent, serviceName);
   return updated;
@@ -616,6 +730,7 @@ export async function deleteProjectServiceExtra(id: string): Promise<void> {
       `Extra "${existing.title}" removed from ${serviceName}.`
     );
     await bumpParentForProjectService(existing.project_service_id, parent);
+    await queueOutboxMutation('projectServiceExtras', 'delete', { id }, id);
   }
 }
 
@@ -851,4 +966,7 @@ async function bumpParentForProjectService(
     db.projects.update(service.project_id, { updated_at: timestamp }),
     db.services.update(service.service_id, { updated_at: timestamp })
   ]);
+  await queueProjectServiceTouch(project_service_id);
+  await queueProjectTouch(service.project_id);
+  await queueServiceTouch(service.service_id);
 }

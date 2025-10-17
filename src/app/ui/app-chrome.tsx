@@ -16,6 +16,7 @@ import {
 import { Toaster } from '@/components/ui/sonner';
 import { ACCENT_PRESETS, type AccentKey, type AccentPreset } from '@/lib/appearance';
 import { auth0Config } from '@/lib/auth0';
+import { useOutboxSync } from '@/lib/hooks/useOutboxSync';
 import type { Profile } from '@/lib/models';
 import { cn } from '@/lib/utils';
 import { useProfile, useProfileUpdater } from '@/lib/hooks/useProfile';
@@ -60,6 +61,7 @@ declare global {
 type NotificationPermissionValue = 'default' | 'denied' | 'granted';
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
+  useOutboxSync();
   return (
     <div className='relative flex min-h-[100svh] flex-col bg-background text-foreground'>
       <Toaster position='top-center' richColors closeButton />
