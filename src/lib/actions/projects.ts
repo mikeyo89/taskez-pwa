@@ -1065,6 +1065,67 @@ export async function updateProjectBillable(
   };
 }
 
+export async function deleteProjectBillable(id: string): Promise<void> {
+  const existing = await db.projectBillables.get(id);
+  if (!existing) return;
+  if (existing.completed_ind) {
+    throw new Error('Cannot delete a completed billable');
+  }
+
+  const timestamp = nowISO();
+  const contexts = await fetchBillableUnitContexts(id);
+  const updatedUnits = contexts.map((context) =>
+    ProjectServiceUnitSchema.parse({
+      ...context.unit,
+      project_billable_id: null,
+      updated_at: timestamp
+    })
+  );
+
+  await db.transaction('rw', [db.projectBillables, db.projectServiceUnits], async () => {
+    await db.projectBillables.delete(id);
+    if (updatedUnits.length > 0) {
+      await Promise.all(updatedUnits.map((unit) => db.projectServiceUnits.put(unit)));
+    }
+  });
+
+  await db.projects.update(existing.project_id, { updated_at: timestamp });
+
+  const impactedParentIds = new Set(contexts.map((context) => context.parent.id));
+  await Promise.all(
+    Array.from(impactedParentIds).map((parentId) => {
+      const parent = contexts.find((context) => context.parent.id === parentId)?.parent;
+      return parent
+        ? bumpParentForProjectService(parentId, parent, timestamp)
+        : bumpParentForProjectService(parentId, undefined, timestamp);
+    })
+  );
+
+  await queueOutboxMutation('projectBillables', 'delete', { id }, id);
+
+  await Promise.all(
+    updatedUnits.map((unit) => queueOutboxMutation('projectServiceUnits', 'update', unit, unit.id))
+  );
+
+  await queueProjectTouch(existing.project_id);
+
+  const releasedCount = contexts.length;
+  const summary =
+    releasedCount > 0
+      ? `${capitalize(existing.billable_type)} billable deleted, releasing ${releasedCount} unit${
+          releasedCount === 1 ? '' : 's'
+        }.`
+      : `${capitalize(existing.billable_type)} billable deleted.`;
+  await recordProjectEvent(existing.project_id, 'project-billable.deleted', summary);
+
+  await Promise.all(
+    contexts.map((context, index) => {
+      const nextUnit = updatedUnits[index];
+      return logUnitStatusEvents(context.unit, nextUnit, context.parent, context.serviceName);
+    })
+  );
+}
+
 // ---- Project Service Extras ----
 export async function addProjectServiceExtra(
   project_service_id: string,
