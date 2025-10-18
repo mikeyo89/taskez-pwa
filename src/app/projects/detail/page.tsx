@@ -25,10 +25,12 @@ import { useProjectDetail } from '@/lib/hooks/useProjectDetail';
 import { useProjectEventsQuery } from '@/lib/hooks/useProjectEventsQuery';
 import { useProjectBillablesQuery } from '@/lib/hooks/useProjectBillablesQuery';
 import { useProjectServicesQuery } from '@/lib/hooks/useProjectServicesQuery';
+import { deleteProjectBillable } from '@/lib/actions/projects';
 import { DeleteProjectDialog, UpdateProjectDialog } from '../form';
 
 import { ProjectEventsTab } from './project-events-tab';
 import { ProjectBillablesTab } from './project-billables-tab';
+import { ProjectBillableDetailPanel } from './project-billable-detail-panel';
 import { ProjectServiceDeleteDialog } from './project-service-delete-dialog';
 import { ProjectServiceDetailPanel } from './project-service-detail-panel';
 import { ProjectServiceDialog } from './project-service-dialog';
@@ -84,6 +86,8 @@ function ProjectDetailContent() {
   const [billableDialogOpen, setBillableDialogOpen] = useState(false);
   const [billableDialogMode, setBillableDialogMode] = useState<'create' | 'view' | 'edit'>('create');
   const [selectedBillable, setSelectedBillable] = useState<ProjectBillableWithUnits | null>(null);
+  const [activeBillableId, setActiveBillableId] = useState<string | null>(null);
+  const [billableDeletePending, setBillableDeletePending] = useState(false);
   const [activeTab, setActiveTab] = useState<'services' | 'billables' | 'events'>('services');
 
   const availableServicesLookup = useMemo(
@@ -107,6 +111,11 @@ function ProjectDetailContent() {
     return availableServicesLookup.get(activeService.service_id);
   }, [activeService, availableServicesLookup]);
 
+  const activeBillable = useMemo(() => {
+    if (!activeBillableId) return null;
+    return (billablesQuery.data ?? []).find((billable) => billable.id === activeBillableId) ?? null;
+  }, [activeBillableId, billablesQuery.data]);
+
   useEffect(() => {
     if (!activeServiceId) return;
     const services = servicesQuery.data ?? [];
@@ -124,12 +133,29 @@ function ProjectDetailContent() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (!activeBillableId) return;
+    const billables = billablesQuery.data ?? [];
+    if (billables.length === 0) return;
+    const exists = billables.some((billable) => billable.id === activeBillableId);
+    if (!exists) {
+      setActiveBillableId(null);
+    }
+  }, [activeBillableId, billablesQuery.data]);
+
+  useEffect(() => {
+    if (activeTab !== 'billables') {
+      setActiveBillableId(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!project) {
       setProjectUpdateOpen(false);
       setProjectDeleteOpen(false);
       setBillableDialogOpen(false);
       setBillableDialogMode('create');
       setSelectedBillable(null);
+      setActiveBillableId(null);
     }
   }, [project]);
 
@@ -193,6 +219,7 @@ function ProjectDetailContent() {
     setSelectedBillable(null);
     setBillableDialogMode('create');
     setBillableDialogOpen(true);
+    setActiveBillableId(null);
   };
 
   const handleModify = (service: ProjectServiceWithChildren) => {
@@ -231,9 +258,7 @@ function ProjectDetailContent() {
   };
 
   const handleBillableView = (billable: ProjectBillableWithUnits) => {
-    setSelectedBillable(billable);
-    setBillableDialogMode('view');
-    setBillableDialogOpen(true);
+    setActiveBillableId(billable.id);
   };
 
   const handleBillableDialogOpenChange = (open: boolean) => {
@@ -242,6 +267,34 @@ function ProjectDetailContent() {
       setBillableDialogMode('create');
     }
     setBillableDialogOpen(open);
+  };
+
+  const handleBillableEdit = (billable: ProjectBillableWithUnits) => {
+    setSelectedBillable(billable);
+    setBillableDialogMode('edit');
+    setBillableDialogOpen(true);
+  };
+
+  const handleBillableDelete = async (billable: ProjectBillableWithUnits) => {
+    if (billable.completed_ind) {
+      toast.error('Completed billables cannot be deleted.');
+      return;
+    }
+
+    try {
+      setBillableDeletePending(true);
+      await deleteProjectBillable(billable.id);
+      toast.success('Billable deleted');
+      setActiveBillableId(null);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('completed')) {
+        toast.error('Completed billables cannot be deleted.');
+      } else {
+        toast.error('Unable to delete billable. Try again.');
+      }
+    } finally {
+      setBillableDeletePending(false);
+    }
   };
 
   const showFloatingButton = activeTab !== 'events';
@@ -440,6 +493,32 @@ function ProjectDetailContent() {
               }
             }}
             loading={!activeService}
+          />
+        )}
+        {activeBillableId && (
+          <ProjectBillableDetailPanel
+            key={activeBillableId}
+            billable={activeBillable}
+            serviceLookup={availableServicesLookup}
+            open={Boolean(activeBillableId)}
+            onClose={() => setActiveBillableId(null)}
+            onEdit={() => {
+              if (activeBillable) {
+                handleBillableEdit(activeBillable);
+              }
+            }}
+            onDelete={() => {
+              if (activeBillable) {
+                void handleBillableDelete(activeBillable);
+              }
+            }}
+            onSend={() => {
+              if (activeBillable) {
+                toast.info('Sending billables is coming soon.');
+              }
+            }}
+            loading={!activeBillable}
+            pending={billableDeletePending}
           />
         )}
       </AnimatePresence>
