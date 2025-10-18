@@ -23,13 +23,14 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
   createProjectBillable,
+  deleteProjectBillable,
   updateProjectBillable,
   type ProjectBillableWithUnits,
   type ProjectServiceWithChildren
 } from '@/lib/actions/projects';
 
 import { cn } from '@/lib/utils';
-import { MoreHorizontal, Pencil, Send } from 'lucide-react';
+import { MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react';
 
 const BILLABLE_TYPES: Array<{ value: 'estimate' | 'invoice'; label: string }> = [
   { value: 'estimate', label: 'Estimate' },
@@ -233,6 +234,29 @@ export function ProjectBillableDialog({
     }
   };
 
+  const handleDelete = async (billableId: string) => {
+    if (pending) return;
+    if (initialBillable?.completed_ind) {
+      toast.error('Completed billables cannot be deleted.');
+      return;
+    }
+    setPending(true);
+    try {
+      await deleteProjectBillable(billableId);
+      toast.success('Billable deleted');
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      if (error instanceof Error && error.message.includes('completed')) {
+        toast.error('Completed billables cannot be deleted.');
+      } else {
+        toast.error('Unable to delete billable. Try again.');
+      }
+    } finally {
+      setPending(false);
+    }
+  };
+
   const selectedUnitsForDisplay = useMemo(() => {
     if (!initialBillable) return [] as Array<{
       id: string;
@@ -262,8 +286,8 @@ export function ProjectBillableDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='sm:max-w-2xl sm:max-h-[85vh] overflow-y-auto'>
-        <DialogHeader className='space-y-2'>
-          <div className='flex items-start justify-between gap-3'>
+        <DialogHeader className='space-y-2 text-left'>
+          <div className='flex items-start justify-between gap-3 pr-12'>
             <div className='flex flex-col gap-2'>
               <DialogTitle>
                 {mode === 'create'
@@ -283,16 +307,17 @@ export function ProjectBillableDialog({
                     type='button'
                     size='icon-sm'
                     variant='ghost'
-                    className='text-muted-foreground hover:text-foreground'
+                    className='mt-1 text-muted-foreground hover:text-foreground'
                     aria-label='Billable actions'
                   >
                     <MoreHorizontal className='h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className='w-36'>
+                <DropdownMenuContent align='end' className='w-40'>
                   <DropdownMenuItem
                     onClick={() => onModeChange('edit')}
                     className='gap-2'
+                    disabled={pending}
                   >
                     <Pencil className='h-4 w-4' />
                     Edit
@@ -300,6 +325,18 @@ export function ProjectBillableDialog({
                   <DropdownMenuItem className='gap-2 text-muted-foreground'>
                     <Send className='h-4 w-4' />
                     Send…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (!initialBillable || initialBillable.completed_ind || pending) return;
+                      void handleDelete(initialBillable.id);
+                    }}
+                    className='gap-2'
+                    variant='destructive'
+                    disabled={pending || initialBillable.completed_ind}
+                  >
+                    <Trash2 className='h-4 w-4' />
+                    Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -81,9 +81,6 @@ export function ProjectBillablesTab({
             <TableHead className='text-xs font-semibold uppercase text-muted-foreground'>
               Billable
             </TableHead>
-            <TableHead className='text-xs font-semibold uppercase text-muted-foreground'>
-              Status
-            </TableHead>
             <TableHead className='text-right text-xs font-semibold uppercase text-muted-foreground'>
               Units
             </TableHead>
@@ -92,7 +89,7 @@ export function ProjectBillablesTab({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={3} className='h-24'>
+              <TableCell colSpan={2} className='h-24'>
                 <div className='flex items-center justify-center gap-3 text-sm text-muted-foreground'>
                   <Loader2 className='h-4 w-4 animate-spin' />
                   Loading billables…
@@ -101,7 +98,7 @@ export function ProjectBillablesTab({
             </TableRow>
           ) : filtered.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3} className='h-24 text-center text-sm text-muted-foreground'>
+              <TableCell colSpan={2} className='h-24 text-center text-sm text-muted-foreground'>
                 {billables.length === 0
                   ? 'No billables yet. Use the + button to group service units for billing.'
                   : 'No billables match your search.'}
@@ -113,12 +110,6 @@ export function ProjectBillablesTab({
               const totalDollarAmount = units
                 .filter((unit) => unit.budget_type === 'dollar')
                 .reduce((sum, unit) => sum + unit.budget_amount, 0);
-              const unitSummary = units
-                .map((unit) => {
-                  const serviceName = unit.service_id ? serviceLookup.get(unit.service_id) : undefined;
-                  return serviceName ? `${serviceName} — ${unit.title}` : unit.title;
-                })
-                .join(', ');
 
               return (
                 <TableRow
@@ -142,18 +133,11 @@ export function ProjectBillablesTab({
                       <span className='text-xs text-muted-foreground'>
                         Updated {formatDate(billable.updated_at)}
                       </span>
-                      {unitSummary && (
-                        <span className='line-clamp-2 break-words text-xs text-muted-foreground'>
-                          {unitSummary}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className='align-middle'>
-                    <div className='flex flex-col gap-1 text-xs text-muted-foreground'>
-                      <StatusPill label='Approved' active={billable.approved_ind} />
-                      <StatusPill label='Completed' active={billable.completed_ind} />
-                      <StatusPill label='Paid' active={billable.paid_ind} />
+                      <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
+                        <StatusPill label='Approved' active={billable.approved_ind} />
+                        <StatusPill label='Completed' active={billable.completed_ind} />
+                        <StatusPill label='Paid' active={billable.paid_ind} />
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className='align-middle text-right text-xs text-muted-foreground'>
